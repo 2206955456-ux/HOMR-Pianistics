@@ -1,0 +1,2 @@
+# HOMR-Pianistics
+一个基于OMR光学乐谱识别和music21音乐元素分析的钢琴技术统计开源项目
