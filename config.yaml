@@ -1,0 +1,40 @@
+# scoreflow 配置文件
+# 命令行 --set KEY=VALUE 可临时覆盖任意项，无需改本文件
+
+paths:
+  # HOMR 发行版自带的嵌入式 Python（识别引擎入口）
+  homr_python: D:\HOMR\homr-main\python_embed\python.exe
+  # HOMR 主目录（模型权重在 homr/ 子目录下，运行时作为工作目录）
+  homr_dir: D:\HOMR\homr-main
+  # 乐谱 PDF 输入目录（也可命令行直接传 PDF 路径）
+  input_dir: D:\HOMR\input
+  # 输出根目录（页面图片、MusicXML、分析报告都放这里）
+  output_dir: D:\HOMR\output
+
+pipeline:
+  dpi: 300        # PDF 渲染 DPI，识别不清可调到 400
+  gpu: no         # auto | no | force（无 NVIDIA 显卡用 no）
+  timeout: 600    # 单页识别超时（秒）
+
+analysis:
+  # 和弦处理: top=取最高音(旋律线) / skip=跳过和弦 / all=展开全部和弦音
+  chord_mode: top
+  # 占比的分母是否包含没有音符的小节
+  count_empty_measures: false
+  # 滑动窗口是否允许跨小节线（false = 只统计小节内部的相邻音群）
+  across_barlines: false
+
+  # 启用哪些音群特征 + 各自参数
+  features:
+    wide_leap_sum:
+      enabled: true
+      params:
+        threshold: 12    # 半音数，12 = 八度
+    big_single_leap:
+      enabled: false
+      params:
+        threshold: 8     # 半音数，8 = 小六度
+    # 新特征在 scoreflow/analysis/features/ 里写好后，在这里加：
+    # my_feature:
+    #   enabled: true
+    #   params: {pitch: C5}

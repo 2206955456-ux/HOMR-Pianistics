@@ -1,0 +1,9 @@
+# scoreflow 运行依赖（在能运行 HOMR 的同一个 Python 环境中安装）
+#
+# 说明：HOMR 本体不在此清单中。两种安装方式见 README「环境准备」：
+#   A. 使用 HOMR Windows 发行版（推荐，自带 python_embed，music21 已内置）
+#   B. 自行安装 homr 源码环境（pip install homr / poetry install）
+
+pypdfium2>=4.0
+music21>=9.1
+PyYAML>=6.0
