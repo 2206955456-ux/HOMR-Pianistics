@@ -16,7 +16,7 @@ from scoreflow.analysis.features import all_features, build_features
 from scoreflow.analysis.features.big_single_leap import BigSingleLeap
 from scoreflow.analysis.features.consecutive_chords import ConsecutiveChords
 from scoreflow.analysis.features.consecutive_sixteenths import ConsecutiveSixteenths
-from scoreflow.analysis.features.wide_leap_sum import WideLeapSum
+from scoreflow.analysis.features.wide_leap_sum import WideLeapSum, is_arpeggio
 
 
 def make_score(measures_notes: list[list[str]]) -> stream.Score:
@@ -41,6 +41,45 @@ def test_wide_leap_sum():
     assert not f.match([note.Note("C4"), note.Note("E4"), note.Note("G4")])
     # 恰好等于 12 不命中（要求"大于"）
     assert not f.match([note.Note("C4"), note.Note("A4"), note.Note("C5")])
+
+
+def test_is_arpeggio():
+    # 三和弦琶音：任意八度、任意次序、允许重复音
+    assert is_arpeggio([note.Note("C4"), note.Note("E5"), note.Note("G4")])    # C 大三
+    assert is_arpeggio([note.Note("A-2"), note.Note("D-2"), note.Note("A-2")])  # {A♭,D♭} ⊆ D♭ 大三
+    assert is_arpeggio([note.Note("D2"), note.Note("A2"), note.Note("F3")])    # D 小三
+    # 七和弦琶音：属七 G-B-D-F 的子集
+    assert is_arpeggio([note.Note("G2"), note.Note("B2"), note.Note("F3")])
+    # 减三和弦琶音
+    assert is_arpeggio([note.Note("B3"), note.Note("D4"), note.Note("F4")])
+    # 非琶音：和弦外音 / 无和弦归属
+    assert not is_arpeggio([note.Note("E2"), note.Note("B2"), note.Note("A3")])  # A 非和弦音
+    assert not is_arpeggio([note.Note("C4"), note.Note("C#4"), note.Note("D4")])  # 连续半音
+
+
+def test_wide_leap_arpeggio_aware():
+    f_off = WideLeapSum({"threshold": 12})
+    f_on = WideLeapSum({"threshold": 12, "arpeggio_aware": True})
+    # 琶音音群（16+3=19 > 12，音级 {C,E,G} ⊆ C 大三和弦）：开关后豁免
+    arp = [note.Note("C4"), note.Note("E5"), note.Note("G4")]
+    assert f_off.match(arp)
+    assert not f_on.match(arp)
+    # 非琶音宽跳（7+10=17，音级 {E,B,A} 无和弦归属）：两版都命中
+    leap = [note.Note("E2"), note.Note("B2"), note.Note("A3")]
+    assert f_off.match(leap)
+    assert f_on.match(leap)
+    # 阈值以下不受开关影响
+    assert not f_on.match([note.Note("C4"), note.Note("E4"), note.Note("G4")])
+
+
+def test_engine_arpeggio_aware():
+    # 一小节纯琶音跑动 C4-G4-E5-C5：C4->G4->E5 和 15>12 命中（音级 {C,G,E} 为琶音）
+    sc = make_score([["C4", "G4", "E5", "C5"]])
+    eng_off = AnalysisEngine([WideLeapSum({"threshold": 12})], chord_mode="top")
+    eng_on = AnalysisEngine(
+        [WideLeapSum({"threshold": 12, "arpeggio_aware": True})], chord_mode="top")
+    assert eng_off.analyze_score(sc).feature_results["wide_leap_sum"].matched_measures == 1
+    assert eng_on.analyze_score(sc).feature_results["wide_leap_sum"].matched_measures == 0
 
 
 def test_engine_ratio():

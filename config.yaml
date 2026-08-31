@@ -30,6 +30,9 @@ analysis:
       enabled: true
       params:
         threshold: 12    # 半音数，12 = 八度
+        arpeggio_aware: false  # 琶音感知开关：true 时分解和弦音型（3音音级可
+                               # 嵌入同一三/七和弦）不判为宽跳，缓解琶音跑动
+                               # 织体上的系统性误报（详见 README）
     big_single_leap:
       enabled: false
       params:
