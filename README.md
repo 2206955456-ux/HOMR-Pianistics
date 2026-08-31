@@ -3,7 +3,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**PDF 乐谱 → MusicXML（HOMR 光学识别）→ 音群特征分析（music21）→ Markdown/JSON 报告**
+**PDF 乐谱 → MusicXML（HOMR 光学识别）→ 音群特征分析（music21）→ Markdown/JSON/Excel 报告**
 
 一条命令完成全流程。分析特征完全可插拔：想统计什么样的"音群"，写一个小类即可，
 不改引擎代码。
@@ -82,7 +82,8 @@ output/
 │       └── page_002.musicxml
 └── reports/
     ├── report.md                 # 人类可读报告（含命中小节明细表）
-    └── report.json               # 程序可读（便于二次处理/批量汇总）
+    ├── report.json               # 程序可读（便于二次处理/批量汇总）
+    └── report.xlsx               # Excel 报告：总览表 + 每特征一张明细表
 ```
 
 ## 编写自己的音群特征（核心玩法）
@@ -140,7 +141,7 @@ analysis:
 │   ├── config.py             # 配置加载与启动校验
 │   ├── pdf_render.py         # PDF -> PNG（pypdfium2）
 │   ├── homr_ocr.py           # PNG -> MusicXML（子进程调用 HOMR）
-│   ├── reporting.py          # Markdown / JSON 报告
+│   ├── reporting.py          # Markdown / JSON / Excel 报告
 │   └── analysis/
 │       ├── engine.py         # 滑动窗口 + 小节统计引擎
 │       └── features/         # ★ 音群特征插件目录（在这里加你的分析）

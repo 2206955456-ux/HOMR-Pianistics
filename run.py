@@ -34,7 +34,7 @@ from scoreflow.analysis.features import all_features, build_features
 from scoreflow.config import ConfigError, load_config
 from scoreflow.homr_ocr import recognize_pages
 from scoreflow.pdf_render import render_pdf
-from scoreflow.reporting import print_summary, write_json, write_markdown
+from scoreflow.reporting import print_summary, write_excel, write_json, write_markdown
 
 
 def parse_override(kv: str) -> dict:
@@ -188,7 +188,9 @@ def run_pipeline(args) -> int:
                         source_pdf=all_results[0].source.name)
     js = write_json(all_results, reports_dir / "report.json",
                     source_pdf=str(input_target))
-    print(f"\n报告已生成:\n  - {md}\n  - {js}")
+    xlsx = write_excel(all_results, reports_dir / "report.xlsx",
+                       source_pdf=str(input_target))
+    print(f"\n报告已生成:\n  - {md}\n  - {js}\n  - {xlsx}")
     return exit_code
 
 
