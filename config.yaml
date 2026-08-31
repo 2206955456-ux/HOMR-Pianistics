@@ -13,7 +13,7 @@ paths:
 
 pipeline:
   dpi: 300        # PDF 渲染 DPI，识别不清可调到 400
-  gpu: no         # auto | no | force（无 NVIDIA 显卡用 no）
+  gpu: "no"       # auto | no | force（无 NVIDIA 显卡用 "no"，注意加引号避免被当布尔值）
   timeout: 600    # 单页识别超时（秒）
 
 analysis:
@@ -34,6 +34,12 @@ analysis:
       enabled: false
       params:
         threshold: 8     # 半音数，8 = 小六度
+    consecutive_sixteenths:
+      enabled: true
+      params: {}
+    consecutive_chords:
+      enabled: true
+      params: {}
     # 新特征在 scoreflow/analysis/features/ 里写好后，在这里加：
     # my_feature:
     #   enabled: true

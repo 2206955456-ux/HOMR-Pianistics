@@ -20,6 +20,8 @@
 |:---|:---|
 | `wide_leap_sum` | 小节内相邻 3 个音，前后 2 个音程之和超过阈值（默认 12 半音 = 八度），统计命中小节占全曲比例 |
 | `big_single_leap` | 小节内相邻 2 个音存在单个大跳（默认 ≥ 8 半音 = 小六度） |
+| `consecutive_sixteenths` | 小节内出现连续 6 个十六分音符（同一声部） |
+| `consecutive_chords` | 小节内同一声部出现连续 6 个和弦 |
 
 ## 环境准备
 
@@ -145,6 +147,8 @@ analysis:
 │           ├── base.py       #   特征基类与工具函数
 │           ├── wide_leap_sum.py   #   示例：3音双音程之和>八度
 │           ├── big_single_leap.py #   示例：单个大跳
+│           ├── consecutive_sixteenths.py  # 连续6个十六分音符
+│           ├── consecutive_chords.py      # 连续6个和弦（和弦感知特征示例）
 │           └── _template.py  #   新特征模板
 └── tests/run_tests.py        # 单元测试（不依赖识别，纯内存乐谱）
 ```

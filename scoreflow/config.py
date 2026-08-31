@@ -85,12 +85,19 @@ class ConfigError(Exception):
 
 
 def load_config(config_path: str | None = None, overrides: dict | None = None) -> Config:
-    """加载配置：默认值 <- YAML 文件 <- 命令行 overrides"""
+    """加载配置：默认值 <- config.yaml <- 命令行 overrides
+
+    config_path 为 None 时自动加载项目根目录的 config.yaml（若存在），
+    保证"编辑 config.yaml 即生效"。
+    """
     data = DEFAULTS
     if config_path:
         p = Path(config_path)
         if not p.exists():
             raise ConfigError(f"配置文件不存在: {p}")
+    else:
+        p = Path(__file__).resolve().parents[1] / "config.yaml"
+    if p.exists():
         with open(p, "r", encoding="utf-8") as f:
             data = _deep_merge(data, yaml.safe_load(f) or {})
     if overrides:
@@ -99,6 +106,11 @@ def load_config(config_path: str | None = None, overrides: dict | None = None) -
     paths = data["paths"]
     pipe = data["pipeline"]
     ana = data["analysis"]
+
+    # YAML 1.1 会把裸的 no/yes/on/off 解析成布尔值，这里统一转回字符串
+    _gpu = pipe["gpu"]
+    if isinstance(_gpu, bool):
+        _gpu = "no" if not _gpu else "auto"
 
     # 允许用环境变量 HOMR_PYTHON 覆盖，方便 CI/其他机器
     homr_python = os.environ.get("HOMR_PYTHON", paths["homr_python"])
@@ -109,7 +121,7 @@ def load_config(config_path: str | None = None, overrides: dict | None = None) -
         input_dir=Path(paths["input_dir"]),
         output_dir=Path(paths["output_dir"]),
         dpi=int(pipe["dpi"]),
-        gpu=pipe["gpu"],
+        gpu=_gpu,
         timeout=int(pipe["timeout"]),
         chord_mode=ana["chord_mode"],
         count_empty_measures=bool(ana["count_empty_measures"]),

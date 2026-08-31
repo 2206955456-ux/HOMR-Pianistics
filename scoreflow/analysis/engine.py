@@ -67,7 +67,6 @@ class AnalysisEngine:
         result.pages = 1
         if not self.features:
             return result
-        min_group = min(f.group_size for f in self.features)
 
         parts = score.parts if score.parts else [score]
         # measure_number -> {feature_name: [MeasureHit]}
@@ -83,14 +82,22 @@ class AnalysisEngine:
             for measure in part.getElementsByClass("Measure"):
                 mnum = int(measure.number)
                 all_measure_numbers.add(mnum)
-                note_seq = self._collect_notes(measure)
-                if note_seq:
-                    counted_measures.add(mnum)
-                if len(note_seq) < min_group:
-                    continue
-
+                # 每个特征独立收集音符流：和弦感知特征用原始流，其余用压平流
+                seq_cache: dict[str, list] = {}
                 for feature in self.features:
-                    for window, desc in self._slide(note_seq, feature.group_size):
+                    keep_chords = bool(getattr(feature, "needs_chords", False))
+                    seq_key = "raw" if keep_chords else "flat"
+                    note_seq = seq_cache.get(seq_key)
+                    if note_seq is None:
+                        note_seq = self._collect_notes(measure, keep_chords=keep_chords)
+                        seq_cache[seq_key] = note_seq
+                    if note_seq:
+                        counted_measures.add(mnum)
+                    if len(note_seq) < feature.group_size:
+                        continue
+
+                    for window, desc in self._slide(
+                            note_seq, feature.group_size, keep_chords=keep_chords):
                         if feature.match(window):
                             hit = MeasureHit(
                                 measure_number=mnum,
@@ -112,9 +119,13 @@ class AnalysisEngine:
         return result
 
     # ------------------------------------------------------------------
-    def _collect_notes(self, measure) -> list[note.Note]:
-        """收集小节内的音符序列。和弦按 chord_mode 处理：
-        top=只取最高音（旋律线），skip=忽略和弦，all=展开全部和弦音。"""
+    def _collect_notes(self, measure, keep_chords: bool = False) -> list:
+        """收集小节内的音符序列。
+        keep_chords=False（默认）：和弦按 chord_mode 压平，
+            top=只取最高音（旋律线），skip=忽略和弦，all=展开全部和弦音；
+        keep_chords=True：保留原始元素（Note 或 Chord），供和弦感知特征使用。"""
+        if keep_chords:
+            return list(measure.recurse().notes)
         seq: list[note.Note] = []
         for el in measure.recurse().notes:
             if isinstance(el, chord.Chord):
@@ -128,16 +139,31 @@ class AnalysisEngine:
                 seq.append(el)
         return seq
 
-    def _slide(self, notes: list[note.Note], group_size: int):
-        """滑动窗口，产出 (音群, 人类可读描述)，如 "C4 -> E5 -> G4 (16+3=19半音)"。"""
+    def _slide(self, notes: list, group_size: int, keep_chords: bool = False):
+        """滑动窗口，产出 (音群, 人类可读描述)。
+        和弦元素显示为 [最高音]，如 "C4 -> [G5] -> E4 (16+17=33半音)"。"""
         for i in range(len(notes) - group_size + 1):
             window = notes[i:i + group_size]
             semis = [
-                abs(window[k + 1].pitch.midi - window[k].pitch.midi)
+                abs(_el_midi(window[k + 1]) - _el_midi(window[k]))
                 for k in range(group_size - 1)
             ]
-            arrow = " -> ".join(n.pitch.nameWithOctave for n in window)
+            arrow = " -> ".join(_el_name(n) for n in window)
             desc = arrow if not semis else (
                 f"{arrow} ({'+'.join(map(str, semis))}={sum(semis)}半音)"
             )
             yield window, desc
+
+
+def _el_midi(el) -> int:
+    """元素的中音区编号；和弦取最高音。"""
+    if isinstance(el, chord.Chord):
+        return el.notes[-1].pitch.midi
+    return el.pitch.midi
+
+
+def _el_name(el) -> str:
+    """元素名称；和弦显示为 [最高音]。"""
+    if isinstance(el, chord.Chord):
+        return f"[{el.notes[-1].pitch.nameWithOctave}]"
+    return el.pitch.nameWithOctave

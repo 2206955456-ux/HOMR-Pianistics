@@ -167,6 +167,12 @@ def run_pipeline(args) -> int:
             exit_code = 2
             continue
 
+        if not results:
+            print("  ✗ 没有可分析的 MusicXML："
+                  "这份谱子还没识别过，请先不带 --skip-omr 跑一次完整流程")
+            exit_code = 2
+            continue
+
         # 多页结果合并为一份（小节数、命中小节数累加）
         merged = _merge_results(results, source_pdf, xml_files)
         all_results.append(merged)

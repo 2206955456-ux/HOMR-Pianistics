@@ -14,6 +14,8 @@ from music21 import chord, meter, note, stream
 from scoreflow.analysis.engine import AnalysisEngine
 from scoreflow.analysis.features import all_features, build_features
 from scoreflow.analysis.features.big_single_leap import BigSingleLeap
+from scoreflow.analysis.features.consecutive_chords import ConsecutiveChords
+from scoreflow.analysis.features.consecutive_sixteenths import ConsecutiveSixteenths
 from scoreflow.analysis.features.wide_leap_sum import WideLeapSum
 
 
@@ -86,9 +88,56 @@ def test_chord_top_mode():
     assert res.feature_results["wide_leap_sum"].matched_measures == 1
 
 
+def test_consecutive_sixteenths():
+    f = ConsecutiveSixteenths()
+    sixteenths = [note.Note("C4", type="16th") for _ in range(6)]
+    assert f.match(sixteenths)
+    # 5 个十六分 + 1 个八分，不算连续 6 个十六分
+    mixed = sixteenths[:5] + [note.Note("C4", type="eighth")]
+    assert not f.match(mixed)
+
+    # 引擎集成：一小节 6 个十六分音符 -> 命中
+    features = [ConsecutiveSixteenths()]
+    engine = AnalysisEngine(features)
+    sc = stream.Score()
+    part = stream.Part()
+    m = stream.Measure(number=1)
+    m.append(meter.TimeSignature("4/4"))
+    for _ in range(6):
+        m.append(note.Note("G4", type="16th"))
+    part.append(m)
+    sc.append(part)
+    res = engine.analyze_score(sc)
+    assert res.feature_results["consecutive_sixteenths"].matched_measures == 1
+
+
+def test_consecutive_chords():
+    f = ConsecutiveChords()
+    chords = [chord.Chord(["C4", "E4", "G4"]) for _ in range(6)]
+    assert f.match(chords)
+    # 5 个和弦 + 1 个单音，不算连续 6 和弦
+    assert not f.match(chords[:5] + [note.Note("C4")])
+
+    # 引擎集成：6 个和弦的小节 -> 命中（chord_mode=top 不影响本特征）
+    features = [ConsecutiveChords()]
+    engine = AnalysisEngine(features, chord_mode="top")
+    sc = stream.Score()
+    part = stream.Part()
+    m = stream.Measure(number=1)
+    m.append(meter.TimeSignature("4/4"))
+    for _ in range(6):
+        m.append(chord.Chord(["C4", "E4", "G4"]))
+    part.append(m)
+    sc.append(part)
+    res = engine.analyze_score(sc)
+    assert res.feature_results["consecutive_chords"].matched_measures == 1
+
+
 def test_feature_discovery_and_config():
     assert "wide_leap_sum" in all_features()
     assert "big_single_leap" in all_features()
+    assert "consecutive_sixteenths" in all_features()
+    assert "consecutive_chords" in all_features()
     cfg = {
         "wide_leap_sum": {"enabled": True, "params": {"threshold": 16}},
         "big_single_leap": {"enabled": False},

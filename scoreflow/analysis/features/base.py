@@ -10,7 +10,7 @@ match() 收到的是相邻 group_size 个音符（list[music21.note.Note]），
 返回 True 表示这个音群命中特征。
 """
 
-from music21 import note
+from music21 import chord, note
 
 
 class ScoreFeature:
@@ -20,11 +20,15 @@ class ScoreFeature:
     description: str = ""
     #: 滑动窗口大小：相邻多少个音构成一个"音群"
     group_size: int = 2
+    #: 为 True 时窗口元素保留原始对象（note.Note 或 chord.Chord），
+    #: 用于"连续和弦"这类需要判断元素类型的特征；
+    #: 为 False（默认）时和弦按 chord_mode 压平为单音。
+    needs_chords: bool = False
 
     def __init__(self, params: dict | None = None):
         self.params = params or {}
 
-    def match(self, notes: list[note.Note]) -> bool:
+    def match(self, notes) -> bool:
         """判断一个相邻音群是否符合特征，必须实现。"""
         raise NotImplementedError
 
@@ -33,6 +37,18 @@ class ScoreFeature:
     def semitones(n1: note.Note, n2: note.Note) -> int:
         """两个音的半音距离（绝对值）。"""
         return abs(n2.pitch.midi - n1.pitch.midi)
+
+    @staticmethod
+    def is_chord(el) -> bool:
+        """元素是否是和弦（needs_chords=True 时窗口元素可能是 Chord）。"""
+        return isinstance(el, chord.Chord)
+
+    @staticmethod
+    def el_midi(el) -> int:
+        """元素的中音区编号；和弦取最高音。"""
+        if isinstance(el, chord.Chord):
+            return el.notes[-1].pitch.midi
+        return el.pitch.midi
 
     def describe_params(self) -> str:
         return ", ".join(f"{k}={v}" for k, v in self.params.items())
