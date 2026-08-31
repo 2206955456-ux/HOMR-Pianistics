@@ -44,18 +44,32 @@ class ScoreResult:
     source: Path
     pages: int = 0
     feature_results: dict[str, FeatureResult] = field(default_factory=dict)
+    # 交叉手启发式重分配操作记录（未启用时为空）
+    cross_hand_ops: list = field(default_factory=list)
 
 
 class AnalysisEngine:
     def __init__(self, features: list[ScoreFeature], chord_mode: str = "top",
-                 count_empty_measures: bool = False, across_barlines: bool = False):
+                 count_empty_measures: bool = False, across_barlines: bool = False,
+                 cross_hand_heuristic: bool = False):
         self.features = features
         self.chord_mode = chord_mode
         self.count_empty_measures = count_empty_measures
         self.across_barlines = across_barlines
+        # 交叉手启发式：按音域把误标到对方谱表的音符重标回实际演奏声部
+        # （详见 scoreflow/analysis/cross_hand.py）
+        self.cross_hand_heuristic = cross_hand_heuristic
 
     # ------------------------------------------------------------------
     def analyze_file(self, musicxml_path: Path) -> ScoreResult:
+        if self.cross_hand_heuristic:
+            text = musicxml_path.read_text(encoding="utf-8", errors="ignore")
+            from scoreflow.analysis.cross_hand import reassign
+            text, ops = reassign(text)
+            score = converter.parseData(text)
+            result = self.analyze_score(score, source=musicxml_path)
+            result.cross_hand_ops = ops
+            return result
         score = converter.parse(str(musicxml_path))
         return self.analyze_score(score, source=musicxml_path)
 
@@ -68,7 +82,9 @@ class AnalysisEngine:
         if not self.features:
             return result
 
-        parts = score.parts if score.parts else [score]
+        parts = list(score.parts)
+        if not parts:
+            parts = [score]
         # measure_number -> {feature_name: [MeasureHit]}
         measure_hits: dict[int, dict[str, list[MeasureHit]]] = {}
         # 含音符的小节号集合（默认作为分母）

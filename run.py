@@ -85,8 +85,12 @@ def run_pipeline(args) -> int:
         print(f"✗ 配置错误: {e}")
         return 1
 
+    # XML 数据根目录固定用 config.yaml 的 output_dir；-o 只影响报告输出位置
+    xml_root = cfg.output_dir
     if args.output:
         cfg.output_dir = Path(args.output)
+    if args.cross_hand_heuristic:
+        cfg.cross_hand_heuristic = True
 
     input_target = Path(args.input).expanduser().resolve() if args.input else cfg.input_dir
     pdfs = collect_pdfs(input_target)
@@ -106,6 +110,7 @@ def run_pipeline(args) -> int:
         chord_mode=cfg.chord_mode,
         count_empty_measures=cfg.count_empty_measures,
         across_barlines=cfg.across_barlines,
+        cross_hand_heuristic=cfg.cross_hand_heuristic,
     )
     if not engine.features:
         print("✗ 未启用任何分析特征，请检查 config.yaml 的 analysis.features")
@@ -122,7 +127,7 @@ def run_pipeline(args) -> int:
         if pdf is not None:
             print("\n" + "-" * 62)
             print(f"▶ {pdf.name}")
-            stem_dir = cfg.output_dir / pdf.stem
+            stem_dir = xml_root / pdf.stem
             pages_dir = stem_dir / "pages"
             xml_files: list[Path] = []
 
@@ -154,7 +159,7 @@ def run_pipeline(args) -> int:
         else:
             # 无 PDF（--skip-omr 且未指定输入）：直接扫输出目录下所有 musicxml
             print("\n▶ 扫描已有 MusicXML ...")
-            xml_files = sorted(cfg.output_dir.rglob("page_*.musicxml"))
+            xml_files = sorted(xml_root.rglob("page_*.musicxml"))
             if not xml_files:
                 print("✗ 输出目录中没有 MusicXML")
                 return 1
@@ -250,6 +255,8 @@ def main() -> int:
     parser.add_argument("--gpu", choices=("auto", "no", "force"), help="GPU 模式")
     parser.add_argument("--set", action="append", metavar="KEY=VALUE",
                         help="临时覆盖配置项，如 --set analysis.features.wide_leap_sum.params.threshold=16")
+    parser.add_argument("--cross-hand-heuristic", action="store_true",
+                        help="启用交叉手启发式声部重分配（按音域把误标到对方谱表的音符重标回实际演奏声部）")
     parser.add_argument("--list-features", action="store_true", help="列出可用音群特征")
     parser.add_argument("--version", action="version", version=f"scoreflow {__version__}")
     args = parser.parse_args()

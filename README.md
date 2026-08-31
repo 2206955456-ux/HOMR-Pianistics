@@ -69,6 +69,9 @@ python run.py --set analysis.features.wide_leap_sum.params.threshold=16
 
 # 5. 查看所有可用特征：
 python run.py --list-features
+
+# 6. 启用交叉手启发式声部重分配（见下方「交叉手问题」）：
+python run.py --cross-hand-heuristic
 ```
 
 产物（默认在 `output/` 下）：
@@ -131,10 +134,38 @@ analysis:
 **统计口径说明**：以小节为单位——小节内任一音群命中即该小节命中；多声部（如钢琴
 上下谱表）任一声部命中即算；多页乐谱按页分析后汇总（命中小节合计 / 含音符小节合计）。
 
+## 交叉手问题与启发式重分配（v1.1.0）
+
+**问题背景**：钢琴谱中"哪只手演奏哪个音"由**符干朝向**决定，而非谱表。交叉手
+（crossed hands）段落中，右手可能进入低音谱表、左手可能进入高音谱表。HOMR 输出的
+MusicXML 未保留 `<stem>` 标签，且按音符垂直位置分配 staff/voice，导致交叉手音符被
+错误归入对方声部，进而使"同一声部"类特征（如 `wide_leap_sum`）漏检。以 etude7 为例，
+32 小节中 13 小节（40.6%）在低音谱表上出现超出常规左手音域的高音（>C5）。
+
+**启发式规则**（`scoreflow/analysis/cross_hand.py`，模拟符干朝向判断的近似）：
+
+- staff 2 上音高 > C5（midi 72）的音符 → 重标为右手（voice 1 / staff 1）；
+- staff 1 上音高 < C3（midi 48）的音符 → 重标为左手（voice 5 / staff 2）。
+
+**用法**：
+
+```bash
+python run.py --cross-hand-heuristic          # 分析时启用重分配
+python cross_hand_compare.py                  # 生成「基线 vs 重分配」论文级对比表
+```
+
+对比报告输出到 `output/reports/交叉手对比_论文版.xlsx`（5 张表：对比总览 / 按特征汇总 /
+逐页命中 / 重分配音符明细 / 声部分布）与同名 `.md`（可直接粘贴进论文）。
+
+**局限**：阈值 C3/C5 为启发式，双手音域重叠段落（如琶音跑动跨越两谱表）可能误判；
+这是"提出问题 + 近似修正"的第一版方案，不保证完全还原真实演奏分配。后续方向是在
+OMR 识别阶段直接读取符干方向（见「已知限制」）。
+
 ## 项目结构
 
 ```
 ├── run.py                    # 命令行入口（全流程编排）
+├── cross_hand_compare.py     # 交叉手「基线 vs 重分配」论文级对比报告
 ├── config.yaml               # 全部配置（路径/识别/分析特征）
 ├── requirements.txt
 ├── scoreflow/
@@ -144,6 +175,7 @@ analysis:
 │   ├── reporting.py          # Markdown / JSON / Excel 报告
 │   └── analysis/
 │       ├── engine.py         # 滑动窗口 + 小节统计引擎
+│       ├── cross_hand.py     # 交叉手启发式重分配（v1.1.0）
 │       └── features/         # ★ 音群特征插件目录（在这里加你的分析）
 │           ├── base.py       #   特征基类与工具函数
 │           ├── wide_leap_sum.py   #   示例：3音双音程之和>八度
@@ -166,6 +198,10 @@ python tests/run_tests.py
 
 - HOMR 当前专注音高与节奏，力度、复杂装饰音等会丢失；OMR 结果建议在
   MuseScore 中人工复核后再用于严肃用途；
+- **交叉手声部分配（v1.1.0 已部分缓解）**：HOMR 输出的 MusicXML 未保留 `<stem>`
+  标签，交叉手段落中实际演奏分配（由符干朝向决定）与按谱表分组存在偏差。当前提供
+  音域启发式重分配（`--cross-hand-heuristic`）作为近似修正，但双手音域重叠段落仍
+  可能误判；彻底解决需在 OMR 识别阶段直接读取符干方向并按符干分配 voice/staff；
 - 每页生成独立 MusicXML，分析按页汇总，不做跨页小节拼接（对按小节统计的特征无影响）；
 - 识别质量取决于乐谱扫描清晰度，印刷清楚的现代乐谱效果最好。
 

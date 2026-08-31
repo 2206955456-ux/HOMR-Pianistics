@@ -138,15 +138,17 @@ def write_excel(results: list[ScoreResult], out_path: Path, source_pdf: str = ""
     # 占比列格式
     for r in range(2, ws.max_row + 1):
         ws.cell(row=r, column=7).number_format = "0.0\"%\""
-    # 合计行
+    # 合计行（仅单曲时有意义；多曲时占比不可直接相加，不输出避免误导）
     n_scores = len(results)
-    if n_scores:
+    if n_scores == 1:
         ws.append([])
+        total_row = ws.max_row + 1  # 合计行即将写入的行号
+        data_last = total_row - 2   # 数据末行
         ws.append([
-            "合计(仅单曲时有效)", "", "", "",
-            f"=SUM(E2:E{ws.max_row - 2})",
-            f"=SUM(F2:F{ws.max_row - 2})",
-            f"=IF(F{ws.max_row}=0,\"\",ROUND(E{ws.max_row}/F{ws.max_row}*100,1))",
+            "合计", "", "", "",
+            f"=SUM(E2:E{data_last})",
+            f"=SUM(F2:F{data_last})",
+            f'=IF(F{data_last}=0,"",ROUND(E{total_row}/F{total_row}*100,1))',
         ])
 
     # ---------- 每个特征一张明细表 ----------

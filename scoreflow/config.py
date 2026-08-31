@@ -28,6 +28,8 @@ DEFAULTS = {
         "count_empty_measures": False,
         # 滑动窗口是否允许跨越小节线（False=只在同一小节内找相邻音群）
         "across_barlines": False,
+        # 交叉手启发式声部重分配（True=按音域把误标到对方谱表的音符重标回实际演奏声部）
+        "cross_hand_heuristic": False,
         "features": {
             "wide_leap_sum": {"enabled": True, "params": {"threshold": 12}},
             "big_single_leap": {"enabled": False, "params": {"threshold": 8}},
@@ -58,6 +60,7 @@ class Config:
     chord_mode: str
     count_empty_measures: bool
     across_barlines: bool
+    cross_hand_heuristic: bool
     features: dict = field(default_factory=dict)
 
     def validate(self) -> None:
@@ -126,6 +129,7 @@ def load_config(config_path: str | None = None, overrides: dict | None = None) -
         chord_mode=ana["chord_mode"],
         count_empty_measures=bool(ana["count_empty_measures"]),
         across_barlines=bool(ana["across_barlines"]),
+        cross_hand_heuristic=bool(ana.get("cross_hand_heuristic", False)),
         features=ana.get("features", {}),
     )
     cfg.validate()
