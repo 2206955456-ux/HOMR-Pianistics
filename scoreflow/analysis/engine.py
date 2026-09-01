@@ -14,6 +14,7 @@ from pathlib import Path
 from music21 import chord, converter, note
 
 from scoreflow.analysis.features import ScoreFeature
+from scoreflow.analysis import hand_split
 
 
 @dataclass
@@ -57,7 +58,8 @@ class ScoreResult:
 class AnalysisEngine:
     def __init__(self, features: list[ScoreFeature], chord_mode: str = "top",
                  count_empty_measures: bool = False, across_barlines: bool = False,
-                 cross_hand_heuristic: bool = False):
+                 cross_hand_heuristic: bool = False,
+                 hand_split_threshold: int | None = None):
         self.features = features
         self.chord_mode = chord_mode
         self.count_empty_measures = count_empty_measures
@@ -65,6 +67,9 @@ class AnalysisEngine:
         # 交叉手启发式：按音域把误标到对方谱表的音符重标回实际演奏声部
         # （详见 scoreflow/analysis/cross_hand.py）
         self.cross_hand_heuristic = cross_hand_heuristic
+        # 双手拆分诊断：当合并后声部跨度 >= threshold 半音时，
+        # 将谱表轨道重组成右手/左手轨道（详见 scoreflow/analysis/hand_split.py）
+        self.hand_split_threshold = hand_split_threshold
 
     # ------------------------------------------------------------------
     def analyze_file(self, musicxml_path: Path) -> ScoreResult:
@@ -73,11 +78,17 @@ class AnalysisEngine:
             from scoreflow.analysis.cross_hand import reassign
             text, ops = reassign(text)
             score = converter.parseData(text)
-            result = self.analyze_score(score, source=musicxml_path)
+            result = self._maybe_split_and_analyze(score, source=musicxml_path)
             result.cross_hand_ops = ops
             return result
         score = converter.parse(str(musicxml_path))
-        return self.analyze_score(score, source=musicxml_path)
+        return self._maybe_split_and_analyze(score, source=musicxml_path)
+
+    def _maybe_split_and_analyze(self, score, source: Path) -> ScoreResult:
+        """若启用双手拆分诊断，先 split_score 再进入分析。"""
+        if self.hand_split_threshold is not None and self.hand_split_threshold > 0:
+            score, _ = hand_split.split_score(score, threshold=self.hand_split_threshold)
+        return self.analyze_score(score, source=source)
 
     def analyze_score(self, score, source: Path | None = None) -> ScoreResult:
         result = ScoreResult(source=source or Path("<memory>"))

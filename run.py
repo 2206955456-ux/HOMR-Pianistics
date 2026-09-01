@@ -91,6 +91,8 @@ def run_pipeline(args) -> int:
         cfg.output_dir = Path(args.output)
     if args.cross_hand_heuristic:
         cfg.cross_hand_heuristic = True
+    if args.hand_split_threshold is not None:
+        cfg.hand_split_threshold = args.hand_split_threshold if args.hand_split_threshold > 0 else None
 
     input_target = Path(args.input).expanduser().resolve() if args.input else cfg.input_dir
     pdfs = collect_pdfs(input_target)
@@ -111,6 +113,7 @@ def run_pipeline(args) -> int:
         count_empty_measures=cfg.count_empty_measures,
         across_barlines=cfg.across_barlines,
         cross_hand_heuristic=cfg.cross_hand_heuristic,
+        hand_split_threshold=cfg.hand_split_threshold,
     )
     if not engine.features:
         print("✗ 未启用任何分析特征，请检查 config.yaml 的 analysis.features")
@@ -270,6 +273,8 @@ def main() -> int:
                         help="临时覆盖配置项，如 --set analysis.features.wide_leap_sum.params.threshold=16")
     parser.add_argument("--cross-hand-heuristic", action="store_true",
                         help="启用交叉手启发式声部重分配（按音域把误标到对方谱表的音符重标回实际演奏声部）")
+    parser.add_argument("--hand-split-threshold", type=int, metavar="N",
+                        help="启用双手拆分诊断，合并后声部跨度 >= N 半音时拆成右手/左手轨道（默认读取 config.yaml）")
     parser.add_argument("--list-features", action="store_true", help="列出可用音群特征")
     parser.add_argument("--version", action="version", version=f"scoreflow {__version__}")
     args = parser.parse_args()

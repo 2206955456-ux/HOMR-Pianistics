@@ -30,8 +30,11 @@ DEFAULTS = {
         "across_barlines": False,
         # 交叉手启发式声部重分配（True=按音域把误标到对方谱表的音符重标回实际演奏声部）
         "cross_hand_heuristic": False,
+        # 双手拆分诊断阈值：合并后声部跨度 >= N 半音时拆成右手/左手轨道。
+        # 默认 16 = 十度；设为 0 或 null 则关闭。
+        "hand_split_threshold": 16,
         "features": {
-            "wide_leap_sum": {"enabled": True, "params": {"threshold": 12}},
+            "stretched_grip": {"enabled": True, "params": {"threshold": 12, "monotonic": True}},
             "big_single_leap": {"enabled": False, "params": {"threshold": 8}},
         },
     },
@@ -61,6 +64,7 @@ class Config:
     count_empty_measures: bool
     across_barlines: bool
     cross_hand_heuristic: bool
+    hand_split_threshold: int | None
     features: dict = field(default_factory=dict)
 
     def validate(self) -> None:
@@ -130,6 +134,7 @@ def load_config(config_path: str | None = None, overrides: dict | None = None) -
         count_empty_measures=bool(ana["count_empty_measures"]),
         across_barlines=bool(ana["across_barlines"]),
         cross_hand_heuristic=bool(ana.get("cross_hand_heuristic", False)),
+        hand_split_threshold=ana.get("hand_split_threshold") or None,
         features=ana.get("features", {}),
     )
     cfg.validate()

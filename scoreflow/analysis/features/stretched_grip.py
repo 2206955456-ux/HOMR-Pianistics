@@ -1,31 +1,32 @@
 # -*- coding: utf-8 -*-
-"""示例特征 1（默认启用）：
+"""特征：伸张把位（stretched grip）。
 
-小节内相邻 3 个音，前后两个音程的半音距离之和超过阈值（默认 12 = 八度）。
+小节内相邻 3 个音，前后两个音程的半音距离之和超过阈值（默认 12 = 八度），
+且 3 音走向相同（单调上行或单调下行）。
 
-例如 C4 -> E5 -> G4：|E5-C4|=16, |G4-E5|=3，和为 19 > 12，命中。
+例如 C4 -> E5 -> G4：|E5-C4|=16, |G4-E5|=3，和为 19 > 12，命中；
+而 C4 -> E4 -> G4 两段音程和为 7，不命中。
 
 参数：
     threshold:      半音数阈值，默认 12（八度）
     arpeggio_aware: 琶音感知开关，默认 false。开启后，若 3 个音的音级
                     （pitch class）集合能整体嵌入某个三和弦或常用七和弦
                     （即它们同为某个和弦的和弦音），则视为分解和弦（琶音）
-                    音型，不判为宽跳。
+                    音型，不判为伸张把位。
     monotonic:      是否要求 3 音走向相同（3 高于 2 高于 1 或 3 低于 2 低于 1，
-                    即前两音与后两音的走向一致），默认 false（不要求）。
-                    《音型集》口径定义"伸张把位"要求走向相同，开启后
-                    折返型琶音（如 A♭2→D♭2→A♭2）不再命中。
+                    即前两音与后两音的走向一致），默认 true（《音型集》口径）。
+                    开启后折返型琶音（如 A♭2→D♭2→A♭2）不再命中。
 
-问题背景：复合音程判据（两段音程之和 > 八度）的本意是捕捉旋律宽跳，
+问题背景：复合音程判据（两段音程之和 > 八度）的本意是捕捉手型扩张把位，
 但在琶音织体（如左手分解和弦伴奏、跨八度琶音跑动）上会系统性误报：
-音群实际是"同一和弦的和弦音先后出现"，不是旋律跳进。
+音群实际是"同一和弦的和弦音先后出现"，不是把位扩张。
 arpeggio_aware 用和弦归属判定（chord membership）豁免这类音型。
 
 已知局限（详见 README「琶音误报与 arpeggio_aware 开关」）：
   - 音群混入非和弦音（经过音、倚音、和弦外音）时判定失效，仍会误报；
   - 声部交错（如和弦顶音与低音交替）形成的音群可能不满足和弦归属，
     仍会误报；
-  - 和弦归属是必要条件而非充分条件——真宽跳若恰好落在同一和弦内
+  - 和弦归属是必要条件而非充分条件——真伸张把位若恰好落在同一和弦内
     （如 C4 -> E5 -> G5）也会被豁免。
 """
 
@@ -68,9 +69,9 @@ def is_arpeggio(notes) -> bool:
     return any(pcs <= c for c in CHORD_PCS)
 
 
-class WideLeapSum(ScoreFeature):
-    name = "wide_leap_sum"
-    description = "相邻3音的2个音程之和超过阈值半音（默认12=八度）"
+class StretchedGrip(ScoreFeature):
+    name = "stretched_grip"
+    description = "伸张把位：相邻3音的2个音程之和超过阈值半音（默认12=八度），且走向相同"
     group_size = 3
     weight = 2.0   # 《音型集》伸张把位难度加权
 
@@ -80,15 +81,15 @@ class WideLeapSum(ScoreFeature):
         if total <= threshold:
             return False
         # 走向相同（单调）：3 高于 2 高于 1，或 3 低于 2 低于 1
-        if self.params.get("monotonic", False):
+        if self.params.get("monotonic", True):
             d1 = notes[1].pitch.midi - notes[0].pitch.midi
             d2 = notes[2].pitch.midi - notes[1].pitch.midi
             if d1 * d2 <= 0:  # 走向不一致（含同音重复）不命中
                 return False
-        # 琶音感知：分解和弦音型豁免，不判为宽跳
+        # 琶音感知：分解和弦音型豁免，不判为伸张把位
         if self.params.get("arpeggio_aware", False) and is_arpeggio(notes):
             return False
         return True
 
 
-FEATURE = WideLeapSum
+FEATURE = StretchedGrip

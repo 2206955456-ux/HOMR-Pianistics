@@ -1,16 +1,24 @@
 # -*- coding: utf-8 -*-
 """CVAA 论文图表生成脚本。
-输出 3 张图到 D:\githubmusic\论文写作\cvaa_figs\：
-  fig1_pipeline.png   系统管线图（含语义修复模块）
-  fig2_arpeggio.png   etude7 M1 右手：chord 音符排序缺陷修复前后对比（谱例）
-  fig3_ablation.png   把位修复消融：4 曲 wide_leap_sum 命中对比
+输出到 D:\githubmusic\论文写作\cvaa_figs\：
+  fig1_pipeline.png       系统管线图（含语义修复模块）
+  fig2_handsplit.png      etude7 M1：双手拆分诊断前后对比（谱例）
+  fig3_ablation.png       伸张把位修复消融：4 曲命中对比
+  fig4_difficulty.png     难度加权总分随考级等级趋势
 """
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
-import os
+from music21 import converter
+
+from scoreflow.analysis.hand_split import split_score
 
 plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "SimSun"]
 plt.rcParams["axes.unicode_minus"] = False
@@ -32,7 +40,7 @@ def fig1_pipeline():
         (86, "特征检测\n滑动窗口",    "proc",    "#E2EFDA"),
         (96, "统计报告\nMD/JSON/XLSX","out",    "#EDEDED"),
     ]
-    def draw(box, color, fontsize=9):
+    def draw(box, fontsize=9):
         x, label, kind, fc = box
         w = 12
         if kind == "out":
@@ -44,7 +52,7 @@ def fig1_pipeline():
         ax.text(x + w/2, 15, label, ha="center", va="center", fontsize=fontsize, zorder=3)
         return x + w
     for b in boxes:
-        draw(b, None)
+        draw(b)
 
     # 语义修复模块（高亮，夹在 MusicXML 与特征检测之间）
     bb = FancyBboxPatch((82.2, 2.5), 13.5, 25, boxstyle="round,pad=0.6",
@@ -52,7 +60,7 @@ def fig1_pipeline():
     ax.add_patch(bb)
     ax.text(89, 22.2, "语义修复", ha="center", va="center", fontsize=9.5,
             fontweight="bold", color="#7F6000", zorder=4)
-    ax.text(89, 8.2, "交叉手声部\n重分配\n和弦最高音\n修正", ha="center", va="center",
+    ax.text(89, 8.2, "交叉手声部\n重分配\n双手拆分\n和弦最高音\n修正", ha="center", va="center",
             fontsize=7.2, color="#7F6000", zorder=4)
 
     # 箭头
@@ -70,66 +78,91 @@ def fig1_pipeline():
     ax.text(75.5, 24.0, "修复前：跳过语义修复（直接统计）", fontsize=6.8,
             color="#C00000", ha="center")
 
-    ax.text(50, 2.0, "图 1  系统管线：OMR 输出 MusicXML 后，经语义修复（交叉手声部重分配 + 和弦最高音修正）"
+    ax.text(50, 2.0, "图 1  系统管线：OMR 输出 MusicXML 后，经语义修复（交叉手声部重分配 + 双手拆分 + 和弦最高音修正）"
                      "再进入特征检测", fontsize=8, ha="center", color="#404040")
     plt.tight_layout()
     fig.savefig(os.path.join(OUT, "fig1_pipeline.png"), dpi=200, bbox_inches="tight")
     plt.close(fig)
     print("fig1_pipeline.png OK")
 
-# ---------------------------------------------------------------- 图 2 谱例
-def fig2_arpeggio():
-    # etude7 page_001 M1 右手：修复前后音符序列（MIDI）
-    pre = ["D4","F#4","A4","D5","D4","A5","A4","D5","A6","D5","A4","A5","D4","D5"]
-    post = ["D4","F#4","A4","D5","F#5","A5","D6","F#6","A6","F#6","D6","A5","F#5","D5"]
-    midi = {"C":0,"C#":1,"D":2,"D#":3,"E":4,"F":5,"F#":6,"G":7,"G#":8,"A":9,"A#":10,"B":11}
-    def to_midi(name):
-        pc, octv = name[:-1], int(name[-1])
-        return (octv+1)*12 + midi[pc]
-    pre_m = [to_midi(p) for p in pre]
-    post_m = [to_midi(p) for p in post]
-    x = list(range(1, len(pre)+1))
 
-    fig, axes = plt.subplots(2, 1, figsize=(9.2, 5.4), sharex=True,
+# ---------------------------------------------------------------- 图 2 双手拆分谱例
+def fig2_handsplit():
+    """etude7 第 1 小节：OMR 合并声部 vs 双手拆分后的 RH/LH 轮廓。"""
+    score = converter.parse(r"D:\HOMR\output\etude07\pages\page_001.musicxml")
+
+    # (a) 拆分前：从 part 0 按 chord_top 取出的"合并声部"轮廓
+    part0 = score.parts[0]
+    m1_pre = part0.measure(1)
+    pre_seq = []
+    for el in m1_pre.recurse().notes:
+        if hasattr(el, "notes"):
+            pre_seq.append(max(el.notes, key=lambda n: n.pitch.midi))
+        else:
+            pre_seq.append(el)
+    pre_seq.sort(key=lambda n: n.offset)
+    pre_x = list(range(1, len(pre_seq) + 1))
+    pre_y = [n.pitch.midi for n in pre_seq]
+    pre_names = [n.pitch.nameWithOctave for n in pre_seq]
+
+    # (b) 拆分后：RH / LH 两条轮廓
+    split, _ = split_score(score, threshold=16)
+    rh_part, lh_part = split.parts[0], split.parts[1]
+    rh_m1 = rh_part.measure(1)
+    lh_m1 = lh_part.measure(1)
+    rh_seq = sorted(list(rh_m1.recurse().notes), key=lambda n: n.offset)
+    lh_seq = sorted(list(lh_m1.recurse().notes), key=lambda n: n.offset)
+    rh_x = list(range(1, len(rh_seq) + 1))
+    lh_x = list(range(1, len(lh_seq) + 1))
+    rh_y = [n.pitch.midi for n in rh_seq]
+    lh_y = [n.pitch.midi for n in lh_seq]
+    rh_names = [n.pitch.nameWithOctave for n in rh_seq]
+    lh_names = [n.pitch.nameWithOctave for n in lh_seq]
+
+    fig, axes = plt.subplots(2, 1, figsize=(9.2, 5.6), sharex=True,
                              gridspec_kw={"height_ratios": [1, 1], "hspace": 0.42})
-    colors_pre  = ["#C00000" if i in (4,5,7,8,10,11,12,13) else "#404040" for i in range(len(pre))]
-    # 修复前：画折线+散点，标出虚假跳进
+
+    # (a) 拆分前
     ax = axes[0]
-    ax.plot(x, pre_m, "-o", color="#C00000", lw=1.4, ms=4, alpha=0.85)
-    # 用红色标注含 >12 半音跳变的相邻段
-    for i in range(len(pre_m)-1):
-        if abs(pre_m[i+1]-pre_m[i]) > 7:
-            ax.plot([x[i], x[i+1]], [pre_m[i], pre_m[i+1]], "-", color="#C00000", lw=2.6, alpha=0.9)
-    for xi, mi, nm in zip(x, pre_m, pre):
-        ax.annotate(nm, (xi, mi), textcoords="offset points", xytext=(0, 7),
-                    ha="center", fontsize=8, color="#C00000", fontweight="bold")
-    ax.set_ylim(58, 86)
-    ax.set_yticks(range(60, 85, 5))
+    ax.plot(pre_x, pre_y, "-o", color="#C00000", lw=1.4, ms=4, alpha=0.9)
+    for xi, yi, nm in zip(pre_x, pre_y, pre_names):
+        ax.annotate(nm, (xi, yi), textcoords="offset points", xytext=(0, 7),
+                    ha="center", fontsize=7.5, color="#C00000")
+    ax.set_ylim(35, 96)
+    ax.set_yticks(range(36, 96, 12))
     ax.set_ylabel("MIDI", fontsize=9)
-    ax.set_title("(a) 修复前：取 <chord> 内最后一个音符（el.notes[-1]），\n"
-                 "琶音被拆成跨八度伪跳进（红色粗线段），宽跳误报 10 处",
+    ax.set_title("(a) 拆分前：OMR 将跨谱表琶音合并为单一声部，\n"
+                 "按最高音取轮廓得到 D4→A6 的单一线条，暗示单手跨越近 3 个八度",
                  fontsize=9.5, loc="left", color="#C00000")
 
-    # 修复后
+    # (b) 拆分后
     ax = axes[1]
-    ax.plot(x, post_m, "-o", color="#2E75B6", lw=1.4, ms=4)
-    for xi, mi, nm in zip(x, post_m, post):
-        ax.annotate(nm, (xi, mi), textcoords="offset points", xytext=(0, 7),
-                    ha="center", fontsize=8, color="#2E75B6")
-    ax.set_ylim(58, 86)
-    ax.set_yticks(range(60, 85, 5))
+    ax.plot(rh_x, rh_y, "-o", color="#C00000", lw=1.4, ms=4, alpha=0.9, label="右手")
+    ax.plot(lh_x, lh_y, "-s", color="#2E75B6", lw=1.4, ms=4, alpha=0.9, label="左手")
+    # 标注若干关键点避免拥挤
+    for xi, yi, nm in zip(rh_x, rh_y, rh_names):
+        if xi % 4 == 1 or xi == len(rh_x):
+            ax.annotate(nm, (xi, yi), textcoords="offset points", xytext=(0, 7),
+                        ha="center", fontsize=7, color="#C00000")
+    for xi, yi, nm in zip(lh_x, lh_y, lh_names):
+        if xi % 4 == 1 or xi == len(lh_x):
+            ax.annotate(nm, (xi, yi), textcoords="offset points", xytext=(0, -12),
+                        ha="center", fontsize=7, color="#2E75B6")
+    ax.set_ylim(35, 96)
+    ax.set_yticks(range(36, 96, 12))
     ax.set_ylabel("MIDI", fontsize=9)
     ax.set_xlabel("音符序号（同一小节内按时间顺序）", fontsize=9)
-    ax.set_title("(b) 修复后：按 MIDI 取和弦最高音（max-by-midi），\n"
-                 "恢复平滑琶音轮廓（D 大调分解和弦上行），宽跳命中 0 处",
-                 fontsize=9.5, loc="left", color="#2E75B6")
+    ax.legend(fontsize=9, loc="upper right")
+    ax.set_title("(b) 拆分后：经 10 度诊断，重建右手（红）F#3→A6 与左手（蓝）D2→F#5 两条平滑平行琶音线",
+                 fontsize=9.5, loc="left", color="#333333")
 
-    fig.suptitle("谱例 1  etude7 第 1 小节右手声部：OMR 输出中 <chord> 音符排序缺陷导致的宽跳误报与修复",
+    fig.suptitle("谱例 1  etude7 第 1 小节：跨谱表琶音的双手拆分诊断",
                  fontsize=10.5, y=0.995, fontweight="bold")
     plt.tight_layout(rect=[0, 0, 1, 0.96])
-    fig.savefig(os.path.join(OUT, "fig2_arpeggio.png"), dpi=200, bbox_inches="tight")
+    fig.savefig(os.path.join(OUT, "fig2_handsplit.png"), dpi=200, bbox_inches="tight")
     plt.close(fig)
-    print("fig2_arpeggio.png OK")
+    print("fig2_handsplit.png OK")
+
 
 # ---------------------------------------------------------------- 图 3 消融
 def fig3_ablation():
@@ -155,11 +188,11 @@ def fig3_ablation():
 
     ax.set_xticks(list(x))
     ax.set_xticklabels([f"etude{p[-1]}\n({['7级','8级','9级','10级'][i]})" for i, p in enumerate(pieces)], fontsize=9)
-    ax.set_ylabel("宽跳（伸张把位）命中小节数", fontsize=9.5)
+    ax.set_ylabel("伸张把位命中小节数", fontsize=9.5)
     ax.set_ylim(0, 72)
     ax.legend(fontsize=9, loc="upper left")
-    ax.set_title("图 3  把位语义修复对宽跳特征的影响：etude7 误报 29→6（逼近人工 0），\n"
-                 "但琶音感知对 etude8/10 的真宽跳存在过度豁免（见 4.4 讨论）",
+    ax.set_title("图 3  把位语义修复对伸张把位特征的影响：etude7 误报 29→6（逼近人工 0），\n"
+                 "但琶音感知对 etude8/10 的真实伸张把位存在过度豁免（见 4.4 讨论）",
                  fontsize=10, loc="left")
     ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
     plt.tight_layout()
@@ -167,27 +200,11 @@ def fig3_ablation():
     plt.close(fig)
     print("fig3_ablation.png OK")
 
-if __name__ == "__main__":
-    fig1_pipeline()
-    fig2_arpeggio()
-    fig3_ablation()
-    print("DONE ->", OUT)
 
-
+# ---------------------------------------------------------------- 图 4 难度趋势
 def fig4_difficulty_trend():
     """图 4：难度加权总分随考级等级的趋势（含 Spearman ρ）"""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    from matplotlib import font_manager
-    import json, os
-
-    # 中文字体
-    for f in font_manager.fontManager.ttflist:
-        if "SimHei" in f.name or "Microsoft YaHei" in f.name:
-            plt.rcParams["font.sans-serif"] = [f.name]
-            break
-    plt.rcParams["axes.unicode_minus"] = False
+    import json
 
     grades = list(range(1, 11))
     scores = []
@@ -216,8 +233,12 @@ def fig4_difficulty_trend():
     out = r"D:/githubmusic/论文写作/cvaa_figs/fig4_difficulty.png"
     os.makedirs(os.path.dirname(out), exist_ok=True)
     fig.savefig(out, dpi=200)
-    print("✓", out)
+    print("fig4_difficulty.png OK")
 
 
 if __name__ == "__main__":
+    fig1_pipeline()
+    fig2_handsplit()
+    fig3_ablation()
     fig4_difficulty_trend()
+    print("DONE ->", OUT)

@@ -21,7 +21,7 @@
 
 | 特征（代码名） | 窗口 | 命中判据 | 加权 |
 |:---|:---:|:---|:---:|
-| 伸张把位（`wide_leap_sum`） | 3 音 | 相邻 3 音音高走向相同（单调）且两段音程之和 > 12 半音（八度） | 2 |
+| 伸张把位（`stretched_grip`） | 3 音 | 相邻 3 音音高走向相同（单调）且两段音程之和 > 12 半音（八度） | 2 |
 | 收缩把位（`contracted_grip`） | 5 音 | 相邻 4 个音程之和 < 6 半音（减五度） | 1 |
 | 连续十六分跑动（`consecutive_sixteenths`） | 5 音 | 单声部连续 5 个十六分音符 | 2 |
 | 连续八分跑动（`consecutive_eighths`） | 3 音 | 单声部连续 3 个八分音符 | 1 |
@@ -75,7 +75,7 @@ python run.py path/to/pdf_dir/
 python run.py --skip-omr
 
 # 4. 临时改参数试效果（不改动配置文件）：
-python run.py --set analysis.features.wide_leap_sum.params.threshold=16
+python run.py --set analysis.features.stretched_grip.params.threshold=16
 
 # 5. 查看所有可用特征：
 python run.py --list-features
@@ -149,7 +149,7 @@ analysis:
 **问题背景**：钢琴谱中"哪只手演奏哪个音"由**符干朝向**决定，而非谱表。交叉手
 （crossed hands）段落中，右手可能进入低音谱表、左手可能进入高音谱表。HOMR 输出的
 MusicXML 未保留 `<stem>` 标签，且按音符垂直位置分配 staff/voice，导致交叉手音符被
-错误归入对方声部，进而使"同一声部"类特征（如 `wide_leap_sum`）漏检。以 etude7 为例，
+错误归入对方声部，进而使"同一声部"类特征（如 `stretched_grip`）漏检。以 etude7 为例，
 32 小节中 13 小节（40.6%）在低音谱表上出现超出常规左手音域的高音（>C5）。
 
 **启发式规则**（`scoreflow/analysis/cross_hand.py`，模拟符干朝向判断的近似）：
@@ -171,26 +171,54 @@ python cross_hand_compare.py                  # 生成「基线 vs 重分配」�
 这是"提出问题 + 近似修正"的第一版方案，不保证完全还原真实演奏分配。后续方向是在
 OMR 识别阶段直接读取符干方向（见「已知限制」）。
 
+## 双手拆分诊断（v1.4.0）
+
+**问题背景**：跨谱表琶音（如车尔尼 Op.740 No.21 第 1 小节）中，快速分解和弦实际由
+左右手交替演奏，但 OMR 输出可能将双手音符归入同一声部/谱表，形成单声部内跨 10 度
+以上（>=16 半音）的"超人手"音程。若直接在该合并声部上统计伸张把位，会得到与演奏
+实际不符的虚假轮廓。
+
+**诊断开关**（`scoreflow/analysis/hand_split.py`）：
+
+- 合并某小节所有谱表的音符；
+- 若整体跨度 >= `hand_split_threshold`（默认 16 半音 = 十度），则触发拆分；
+- 按每个 onset 上的最大音程间隙把音符切分为右手（高音组）与左手（低音组）；
+- 重建独立的 `Right Hand` / `Left Hand` 两个声部，再送入特征检测。
+
+**用法**：
+
+```bash
+python run.py                              # config.yaml 中 hand_split_threshold 默认 16
+python run.py --hand-split-threshold 16    # 命令行显式启用
+python run.py --hand-split-threshold 0     # 关闭
+```
+
+**效果示例**：etude7 第 1 小节经拆分后，右手轮廓为 F#3→A6 的平滑上行再下行，左手
+轮廓为 D2→F#5 的平行低八度线条，与乐谱标注的双手分配一致。
+
+**局限**：该诊断以 onset 为单位按音高间隙粗分，无法处理声部真正交错（一只手插入
+另一只手中间）的复杂织体；彻底解决仍需 OMR 阶段读取符干方向。
+
 ## 琶音误报与 arpeggio_aware 开关（v1.2.0）
 
-**问题背景**：`wide_leap_sum` 的复合音程判据（相邻 3 音的两段音程之和 > 八度）本意
-是捕捉旋律宽跳，但在琶音织体上会**系统性误报**。人工核查 4 首考级练习曲发现：
-etude7 实际几乎不存在旋律宽跳——通篇是整齐的琶音跑动与左手和弦，但该特征基线
+**问题背景**：`stretched_grip` 的复合音程判据（相邻 3 音的两段音程之和 > 八度）本意
+是捕捉伸张把位，但在琶音织体上会**系统性误报**。人工核查 4 首考级练习曲发现：
+etude7 实际几乎不存在伸张把位——通篇是整齐的琶音跑动与左手和弦，但该特征基线
 命中占比高达 96.9%（31/32 小节）。原因是跨八度琶音（如 `C4 -> G4 -> E5`，7+8=15
-半音）满足"音程之和 > 八度"，却被复合判据误判为宽跳。
+半音）满足"音程之和 > 八度"，却被复合判据误判为伸张把位。
 
 **开关方案**（`wide_leap_sum` 参数 `arpeggio_aware`，默认关闭）：
 
 启用后，若音群 3 个音的**音级（pitch class）集合可整体嵌入某个三和弦或常用七和弦**
 （大小三 / 减 / 增三和弦，大 / 小 / 属 / 减 / 半减七和弦的任意转位，任意八度、任意
-出现次序、允许重复音），则视为**分解和弦（琶音）音型**予以豁免，不判为宽跳。
+出现次序、允许重复音），则视为**分解和弦（琶音）音型**予以豁免，不判为伸张把位。
 判定依据是和弦归属（chord membership）而非音程方向——因为实际误报中大量是
 折返型琶音（如 `A-2 -> D-2 -> A-2`，7+7=14 半音），仅靠"单调方向过滤"无法覆盖。
 
 **用法**：
 
 ```bash
-python run.py --set analysis.features.wide_leap_sum.params.arpeggio_aware=true
+python run.py --set analysis.features.stretched_grip.params.arpeggio_aware=true
 python arpeggio_compare.py    # 生成「基线 vs 开关」论文级对比表
 ```
 
@@ -241,7 +269,7 @@ python arpeggio_compare.py    # 生成「基线 vs 开关」论文级对比表
 │       ├── cross_hand.py     # 交叉手启发式重分配（v1.1.0）
 │       └── features/         # ★ 音群特征插件目录（在这里加你的分析）
 │           ├── base.py       #   特征基类与工具函数
-│           ├── wide_leap_sum.py   #   伸张把位：3音单调且双音程之和>八度（加权2）
+│           ├── stretched_grip.py   #   伸张把位：3音单调且双音程之和>八度（加权2）
 │           ├── contracted_grip.py #   收缩把位：5音4音程之和<减五度（加权1）
 │           ├── consecutive_sixteenths.py  # 连续十六分跑动：连续5个（加权2）
 │           ├── consecutive_eighths.py     # 连续八分跑动：连续3个（加权1）
@@ -268,8 +296,8 @@ python tests/run_tests.py
   标签，交叉手段落中实际演奏分配（由符干朝向决定）与按谱表分组存在偏差。当前提供
   音域启发式重分配（`--cross-hand-heuristic`）作为近似修正，但双手音域重叠段落仍
   可能误判；彻底解决需在 OMR 识别阶段直接读取符干方向并按符干分配 voice/staff；
-- **琶音织体上的宽跳误报（v1.2.0 已部分缓解）**：复合音程判据会把分解和弦跑动误判
-  为旋律宽跳。`arpeggio_aware` 开关用和弦归属豁免纯琶音音群，但音群含非和弦音
+- **琶音织体上的伸张把位误报（v1.2.0 已部分缓解）**：复合音程判据会把分解和弦跑动误判
+  为伸张把位。`arpeggio_aware` 开关用和弦归属豁免纯琶音音群，但音群含非和弦音
   （经过音/倚音）或声部交错时仍会误报；彻底解决需结合调性和声分析（和弦还原）与
   声部分离；
 - 每页生成独立 MusicXML，分析按页汇总，不做跨页小节拼接（对按小节统计的特征无影响）；
