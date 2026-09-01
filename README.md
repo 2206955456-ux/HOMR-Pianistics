@@ -14,14 +14,24 @@
 └─────────┘               └──────────┘  (光学识别)  └───────────┘  (滑动窗口)  └────────┘
 ```
 
-## 内置示例特征
+## 音型集特征（六类）
 
-| 特征 | 说明 |
-|:---|:---|
-| `wide_leap_sum` | 小节内相邻 3 个音，前后 2 个音程之和超过阈值（默认 12 半音 = 八度），统计命中小节占全曲比例；可选 `arpeggio_aware: true` 豁免分解和弦（琶音）音型，见下文专节 |
-| `big_single_leap` | 小节内相邻 2 个音存在单个大跳（默认 ≥ 8 半音 = 小六度） |
-| `consecutive_sixteenths` | 小节内出现连续 6 个十六分音符（同一声部） |
-| `consecutive_chords` | 小节内同一声部出现连续 6 个和弦 |
+本框架内置《音型（音群）集》定义的六类钢琴技术音群特征，判定口径与难度加权见
+[音型集标准.md](音型集标准.md)。
+
+| 特征（代码名） | 窗口 | 命中判据 | 加权 |
+|:---|:---:|:---|:---:|
+| 伸张把位（`wide_leap_sum`） | 3 音 | 相邻 3 音音高走向相同（单调）且两段音程之和 > 12 半音（八度） | 2 |
+| 收缩把位（`contracted_grip`） | 5 音 | 相邻 4 个音程之和 < 6 半音（减五度） | 1 |
+| 连续十六分跑动（`consecutive_sixteenths`） | 5 音 | 单声部连续 5 个十六分音符 | 2 |
+| 连续八分跑动（`consecutive_eighths`） | 3 音 | 单声部连续 3 个八分音符 | 1 |
+| 连续和弦支撑（`consecutive_chords`） | 3 和弦 | 单声部连续 3 个和弦（≥3 音叠置） | 2 |
+| 连续音程支撑（`consecutive_intervals`） | 3 音程 | 单声部连续 3 个双音叠置 | 1 |
+
+难度加权模型：`D = Σ w_f · (m_f^1 + 2·m_f^2)`——双手同节技术加倍计分（详见
+[音型集标准.md](音型集标准.md)）。
+
+> `big_single_leap`（单个大跳）为预留特征，默认关闭，不在六类之内。
 
 ## 环境准备
 
@@ -217,7 +227,9 @@ python arpeggio_compare.py    # 生成「基线 vs 开关」论文级对比表
 ├── run.py                    # 命令行入口（全流程编排）
 ├── cross_hand_compare.py     # 交叉手「基线 vs 重分配」论文级对比报告
 ├── arpeggio_compare.py       # 琶音感知开关「基线 vs 开启」论文级对比报告（v1.2.0）
+├── grades_summary.py         # 1-10 级分级汇总（难度加权 + 等级趋势，v1.3.0）
 ├── config.yaml               # 全部配置（路径/识别/分析特征）
+├── 音型集标准.md             # 音群特征判定标准（六类特征 + 难度加权）
 ├── requirements.txt
 ├── scoreflow/
 │   ├── config.py             # 配置加载与启动校验
@@ -229,10 +241,13 @@ python arpeggio_compare.py    # 生成「基线 vs 开关」论文级对比表
 │       ├── cross_hand.py     # 交叉手启发式重分配（v1.1.0）
 │       └── features/         # ★ 音群特征插件目录（在这里加你的分析）
 │           ├── base.py       #   特征基类与工具函数
-│           ├── wide_leap_sum.py   #   示例：3音双音程之和>八度
-│           ├── big_single_leap.py #   示例：单个大跳
-│           ├── consecutive_sixteenths.py  # 连续6个十六分音符
-│           ├── consecutive_chords.py      # 连续6个和弦（和弦感知特征示例）
+│           ├── wide_leap_sum.py   #   伸张把位：3音单调且双音程之和>八度（加权2）
+│           ├── contracted_grip.py #   收缩把位：5音4音程之和<减五度（加权1）
+│           ├── consecutive_sixteenths.py  # 连续十六分跑动：连续5个（加权2）
+│           ├── consecutive_eighths.py     # 连续八分跑动：连续3个（加权1）
+│           ├── consecutive_chords.py      # 连续和弦支撑：连续3个和弦（加权2）
+│           ├── consecutive_intervals.py   # 连续音程支撑：连续3个双音（加权1）
+│           ├── big_single_leap.py #   预留：单个大跳（默认关闭）
 │           └── _template.py  #   新特征模板
 └── tests/run_tests.py        # 单元测试（不依赖识别，纯内存乐谱）
 ```

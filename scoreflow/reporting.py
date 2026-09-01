@@ -17,6 +17,12 @@ def print_summary(results: list[ScoreResult]) -> None:
                 print(f"      参数: {fres.feature.describe_params()}")
             print(f"      命中小节: {fres.matched_measures}/{fres.total_measures}"
                   f"  占比 {fres.ratio_str}")
+        if res.difficulty_detail:
+            print(f"  ★ 难度加权分（《音型集》口径）: {res.difficulty_score:g}")
+            for fname, d in res.difficulty_detail.items():
+                two = d["two_hand_measures"]
+                print(f"      {fname}: 权重{d['weight']:g} × (单手{d['hit_measures']-two}"
+                      f" + 双手{two}×2) = {d['score']:g}")
 
 
 def write_markdown(results: list[ScoreResult], out_path: Path, source_pdf: str = "") -> Path:
@@ -47,6 +53,20 @@ def write_markdown(results: list[ScoreResult], out_path: Path, source_pdf: str =
                 for h in fres.hits:
                     lines.append(f"| {h.measure_number} | {h.part_name} | {h.notes_desc} |")
                 lines.append("")
+        if res.difficulty_detail:
+            lines += [
+                "### 难度加权（《音型集》口径）",
+                "",
+                f"**总分：{res.difficulty_score:g}**",
+                "",
+                "| 特征 | 权重 | 命中小节 | 其中双手同节 | 加权得分 |",
+                "|:---|---:|---:|---:|---:|",
+            ]
+            for fname, d in res.difficulty_detail.items():
+                lines.append(
+                    f"| {fname} | {d['weight']:g} | {d['hit_measures']} "
+                    f"| {d['two_hand_measures']} | {d['score']:g} |")
+            lines.append("")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text("\n".join(lines), encoding="utf-8")
     return out_path
@@ -62,6 +82,8 @@ def write_json(results: list[ScoreResult], out_path: Path, source_pdf: str = "")
         data["scores"].append({
             "musicxml": str(res.source) if res.source else None,
             "pages": res.pages,
+            "difficulty_score": res.difficulty_score,
+            "difficulty_detail": res.difficulty_detail,
             "features": {
                 name: {
                     "description": fres.feature.description,
@@ -110,12 +132,14 @@ def write_excel(results: list[ScoreResult], out_path: Path, source_pdf: str = ""
     # ---------- Sheet 1: 总览 ----------
     ws = wb.active
     ws.title = "总览"
-    headers = ["乐谱", "特征", "说明", "参数", "命中小节数", "总小节数", "占比"]
+    headers = ["乐谱", "特征", "说明", "参数", "命中小节数", "总小节数", "占比",
+               "权重", "双手同节", "加权得分"]
     ws.append(headers)
     # 多首曲子逐首追加（每首一行标题分隔）
     for res in results:
         score_name = res.source.name if res.source else "<memory>"
         for fname, fres in res.feature_results.items():
+            d = res.difficulty_detail.get(fname, {})
             ws.append([
                 score_name,
                 fres.feature.name,
@@ -124,6 +148,9 @@ def write_excel(results: list[ScoreResult], out_path: Path, source_pdf: str = ""
                 fres.matched_measures,
                 fres.total_measures,
                 round(fres.ratio * 100, 1),
+                d.get("weight", ""),
+                d.get("two_hand_measures", ""),
+                d.get("score", ""),
             ])
     # 样式：表头
     for col in range(1, len(headers) + 1):
@@ -132,7 +159,8 @@ def write_excel(results: list[ScoreResult], out_path: Path, source_pdf: str = ""
         c.font = HEADER_FONT
         c.alignment = Alignment(horizontal="center", vertical="center")
     # 列宽
-    for col, width in zip(range(1, 8), [24, 26, 46, 18, 12, 12, 10]):
+    widths = [24, 26, 46, 18, 12, 12, 10, 8, 10, 10]
+    for col, width in zip(range(1, len(widths) + 1), widths):
         ws.column_dimensions[get_column_letter(col)].width = width
     ws.freeze_panes = "A2"
     # 占比列格式
@@ -150,6 +178,28 @@ def write_excel(results: list[ScoreResult], out_path: Path, source_pdf: str = ""
             f"=SUM(F2:F{data_last})",
             f'=IF(F{data_last}=0,"",ROUND(E{total_row}/F{total_row}*100,1))',
         ])
+
+    # ---------- Sheet 2: 难度加权汇总 ----------
+    if any(res.difficulty_detail for res in results):
+        wq = wb.create_sheet("难度加权")
+        wq.append(["乐谱", "特征", "权重", "命中小节数",
+                   "其中双手同节", "单手小节数", "加权得分"])
+        for res in results:
+            score_name = res.source.name if res.source else "<memory>"
+            for fname, d in res.difficulty_detail.items():
+                two = d["two_hand_measures"]
+                wq.append([score_name, fname, d["weight"], d["hit_measures"],
+                           two, d["hit_measures"] - two, d["score"]])
+            if res.difficulty_detail:
+                wq.append([score_name, "★总分", "", "", "", "", res.difficulty_score])
+        for col in range(1, 8):
+            c = wq.cell(row=1, column=col)
+            c.fill = HEADER_FILL
+            c.font = HEADER_FONT
+            c.alignment = Alignment(horizontal="center")
+        for col, width in zip(range(1, 8), [24, 26, 8, 12, 12, 12, 10]):
+            wq.column_dimensions[get_column_letter(col)].width = width
+        wq.freeze_panes = "A2"
 
     # ---------- 每个特征一张明细表 ----------
     feature_names = sorted({

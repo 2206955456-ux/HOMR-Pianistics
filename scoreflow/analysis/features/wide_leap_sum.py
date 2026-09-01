@@ -11,6 +11,10 @@
                     （pitch class）集合能整体嵌入某个三和弦或常用七和弦
                     （即它们同为某个和弦的和弦音），则视为分解和弦（琶音）
                     音型，不判为宽跳。
+    monotonic:      是否要求 3 音走向相同（3 高于 2 高于 1 或 3 低于 2 低于 1，
+                    即前两音与后两音的走向一致），默认 false（不要求）。
+                    《音型集》口径定义"伸张把位"要求走向相同，开启后
+                    折返型琶音（如 A♭2→D♭2→A♭2）不再命中。
 
 问题背景：复合音程判据（两段音程之和 > 八度）的本意是捕捉旋律宽跳，
 但在琶音织体（如左手分解和弦伴奏、跨八度琶音跑动）上会系统性误报：
@@ -68,12 +72,19 @@ class WideLeapSum(ScoreFeature):
     name = "wide_leap_sum"
     description = "相邻3音的2个音程之和超过阈值半音（默认12=八度）"
     group_size = 3
+    weight = 2.0   # 《音型集》伸张把位难度加权
 
     def match(self, notes: list[note.Note]) -> bool:
         threshold = int(self.params.get("threshold", 12))
         total = self.semitones(notes[0], notes[1]) + self.semitones(notes[1], notes[2])
         if total <= threshold:
             return False
+        # 走向相同（单调）：3 高于 2 高于 1，或 3 低于 2 低于 1
+        if self.params.get("monotonic", False):
+            d1 = notes[1].pitch.midi - notes[0].pitch.midi
+            d2 = notes[2].pitch.midi - notes[1].pitch.midi
+            if d1 * d2 <= 0:  # 走向不一致（含同音重复）不命中
+                return False
         # 琶音感知：分解和弦音型豁免，不判为宽跳
         if self.params.get("arpeggio_aware", False) and is_arpeggio(notes):
             return False

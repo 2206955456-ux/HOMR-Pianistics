@@ -25,11 +25,16 @@ analysis:
   across_barlines: false
 
   # 启用哪些音群特征 + 各自参数
+  # 口径说明：《音型(音群)集》——伸张把位(单调+>12半音,加权2)、
+  # 收缩把位(5音4音程和<6半音,加权1)、连续十六分(5个,加权2)、
+  # 连续八分(3个,加权1)、连续和弦(3个且≥3音叠置,加权2)、
+  # 连续音程(3个且2音叠置,加权1)；若某小节双手同时出现某技术，加权×2。
   features:
     wide_leap_sum:
       enabled: true
       params:
         threshold: 12    # 半音数，12 = 八度
+        monotonic: true  # 《音型集》口径：要求 3 音走向相同（伸张把位）
         arpeggio_aware: false  # 琶音感知开关：true 时分解和弦音型（3音音级可
                                # 嵌入同一三/七和弦）不判为宽跳，缓解琶音跑动
                                # 织体上的系统性误报（详见 README）
@@ -39,10 +44,26 @@ analysis:
         threshold: 8     # 半音数，8 = 小六度
     consecutive_sixteenths:
       enabled: true
-      params: {}
+      params:
+        window_size: 5   # 《音型集》口径：连续 5 个十六分音符（早期为 6）
+    consecutive_eighths:
+      enabled: true
+      params:
+        window_size: 3   # 连续 3 个八分音符
     consecutive_chords:
       enabled: true
-      params: {}
+      params:
+        window_size: 3   # 《音型集》口径：连续 3 个和弦（早期为 6）
+        min_notes: 3     # 和弦 = 3 音及以上叠置
+    consecutive_intervals:
+      enabled: true
+      params:
+        window_size: 3   # 连续 3 个音程
+        exact: true      # 严格要求 2 音叠置
+    contracted_grip:
+      enabled: true
+      params:
+        threshold: 6     # 4 个音程之和 < 6 半音（减五度）
     # 新特征在 scoreflow/analysis/features/ 里写好后，在这里加：
     # my_feature:
     #   enabled: true

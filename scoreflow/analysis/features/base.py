@@ -24,6 +24,8 @@ class ScoreFeature:
     #: 用于"连续和弦"这类需要判断元素类型的特征；
     #: 为 False（默认）时和弦按 chord_mode 压平为单音。
     needs_chords: bool = False
+    #: 难度加权（《音型集》口径）：单曲难度分 = Σ(命中技术权重 × 双手系数)
+    weight: float = 1.0
 
     def __init__(self, params: dict | None = None):
         self.params = params or {}
@@ -47,7 +49,7 @@ class ScoreFeature:
     def el_midi(el) -> int:
         """元素的中音区编号；和弦取最高音。"""
         if isinstance(el, chord.Chord):
-            return el.notes[-1].pitch.midi
+            return max(el.notes, key=lambda n: n.pitch.midi).pitch.midi
         return el.pitch.midi
 
     def describe_params(self) -> str:

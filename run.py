@@ -230,6 +230,19 @@ def _merge_results(results, source_pdf: str, xml_files: list[Path]):
             matched_measures=matched,
             hits=hits,
         )
+    # 难度加权：各页独立计算后求和（页内小节号唯一，跨页不冲突）
+    merged.difficulty_score = round(sum(r.difficulty_score for r in results), 2)
+    for name in results[0].feature_results:
+        agg = {"weight": 0.0, "hit_measures": 0, "two_hand_measures": 0, "score": 0.0}
+        for r in results:
+            rd = r.difficulty_detail.get(name)
+            if not rd:
+                continue
+            agg["weight"] = rd["weight"]
+            agg["hit_measures"] += rd["hit_measures"]
+            agg["two_hand_measures"] += rd["two_hand_measures"]
+            agg["score"] += rd["score"]
+        merged.difficulty_detail[name] = agg
     return merged
 
 

@@ -15,7 +15,10 @@ from scoreflow.analysis.engine import AnalysisEngine
 from scoreflow.analysis.features import all_features, build_features
 from scoreflow.analysis.features.big_single_leap import BigSingleLeap
 from scoreflow.analysis.features.consecutive_chords import ConsecutiveChords
+from scoreflow.analysis.features.consecutive_eighths import ConsecutiveEighths
+from scoreflow.analysis.features.consecutive_intervals import ConsecutiveIntervals
 from scoreflow.analysis.features.consecutive_sixteenths import ConsecutiveSixteenths
+from scoreflow.analysis.features.contracted_grip import ContractedGrip
 from scoreflow.analysis.features.wide_leap_sum import WideLeapSum, is_arpeggio
 
 
@@ -198,6 +201,88 @@ def test_unknown_feature_raises():
         assert False, "应当抛出 KeyError"
     except KeyError:
         pass
+
+
+# ---------- 《音型集》口径测试 ----------
+
+def test_wide_leap_monotonic():
+    """伸张把位：3 音走向相同（单调）且两段音程和 > 12。"""
+    f = WideLeapSum({"threshold": 12, "monotonic": True})
+    # 单调上行大跳 C4->E5->C6 (16+19=35) 命中
+    assert f.match([note.Note("C4"), note.Note("E5"), note.Note("C6")])
+    # 单调下行大跳 C6->E5->C4 命中
+    assert f.match([note.Note("C6"), note.Note("E5"), note.Note("C4")])
+    # 折返音群 A♭2->D♭2->A♭2 (7+7=14>12) 但走向不同 -> 不命中
+    assert not f.match([note.Note("A-2"), note.Note("D-2"), note.Note("A-2")])
+    # 同音重复（走向为零）-> 不命中
+    assert not f.match([note.Note("C4"), note.Note("C4"), note.Note("A5")])
+
+def test_contracted_grip():
+    """收缩把位：相邻 5 音的 4 个音程之和 < 6 半音。"""
+    f = ContractedGrip({"threshold": 6})
+    # C4 D4 D#4 E4 F4: 2+1+1+1=5 < 6 命中
+    seq = [note.Note(n) for n in ("C4", "D4", "D#4", "E4", "F4")]
+    assert f.match(seq)
+    # C4 E4 G4 C5 E5: 4+3+5+4=16 不命中
+    seq2 = [note.Note(n) for n in ("C4", "E4", "G4", "C5", "E5")]
+    assert not f.match(seq2)
+    # 恰好等于 6 不命中（严格小于）
+    seq3 = [note.Note(n) for n in ("C4", "D4", "E4", "F4", "F#4")]  # 2+2+1+1=6
+    assert not f.match(seq3)
+
+def test_consecutive_eighths():
+    """连续八分音符：连续 3 个八分。"""
+    f = ConsecutiveEighths()
+    assert f.match([note.Note("C4", type="eighth") for _ in range(3)])
+    assert not f.match([note.Note("C4", type="eighth") for _ in range(2)]
+                       + [note.Note("C4", type="16th")])
+
+def test_consecutive_intervals():
+    """连续音程：单一声部连续 3 个 2 音叠置。"""
+    f = ConsecutiveIntervals()
+    dyads = [chord.Chord(["C4", "E4"]) for _ in range(3)]
+    assert f.match(dyads)
+    # 混入单音 -> 不命中
+    assert not f.match(dyads[:2] + [note.Note("C4")])
+    # 混入三音和弦（exact=True 严格要求 2 音）-> 不命中
+    assert not f.match(dyads[:2] + [chord.Chord(["C4", "E4", "G4"])])
+    # exact=False 时 2 音及以上都算
+    f2 = ConsecutiveIntervals({"exact": False})
+    assert f2.match(dyads[:2] + [chord.Chord(["C4", "E4", "G4"])])
+
+def test_consecutive_chords_min_notes():
+    """连续和弦口径：3 连且 3 音及以上叠置（双音不算）。"""
+    f = ConsecutiveChords()  # 默认 window=3, min_notes=3
+    triads = [chord.Chord(["C4", "E4", "G4"]) for _ in range(3)]
+    assert f.match(triads)
+    # 连续 3 个双音 -> 不算和弦（属连续音程）
+    dyads = [chord.Chord(["C4", "E4"]) for _ in range(3)]
+    assert not f.match(dyads)
+
+def test_difficulty_weighting():
+    """难度加权：权重 × (单手小节 + 双手小节×2)。"""
+    # 单声部 1 小节命中伸张把位（权重2）-> 2 分
+    sc = make_score([["C4", "E5", "C6"]])
+    eng = AnalysisEngine([WideLeapSum({"threshold": 12, "monotonic": True})])
+    res = eng.analyze_score(sc)
+    assert res.difficulty_score == 2.0, res.difficulty_score
+    assert res.difficulty_detail["wide_leap_sum"]["two_hand_measures"] == 0
+
+    # 双声部同小节都命中 -> 该小节 ×2 -> 4 分
+    sc2 = stream.Score()
+    for _ in range(2):
+        part = stream.Part()
+        m = stream.Measure(number=1)
+        m.append(meter.TimeSignature("4/4"))
+        for n in ("C4", "E5", "C6"):
+            m.append(note.Note(n))
+        part.append(m)
+        sc2.append(part)
+    eng2 = AnalysisEngine([WideLeapSum({"threshold": 12, "monotonic": True})])
+    res2 = eng2.analyze_score(sc2)
+    d = res2.difficulty_detail["wide_leap_sum"]
+    assert d["two_hand_measures"] == 1, d
+    assert res2.difficulty_score == 4.0, res2.difficulty_score
 
 
 def main() -> int:

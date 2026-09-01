@@ -46,6 +46,12 @@ class ScoreResult:
     feature_results: dict[str, FeatureResult] = field(default_factory=dict)
     # 交叉手启发式重分配操作记录（未启用时为空）
     cross_hand_ops: list = field(default_factory=list)
+    # 难度加权分（《音型集》口径）：
+    #   总分 = Σ_特征 Σ_命中小节 (特征权重 × 双手系数)
+    #   双手系数 = 2（该小节双手/两声部同时出现该技术）否则 1
+    difficulty_score: float = 0.0
+    # 逐特征难度明细: {feature_name: {weight, hit_measures, two_hand_measures, score}}
+    difficulty_detail: dict = field(default_factory=dict)
 
 
 class AnalysisEngine:
@@ -132,6 +138,34 @@ class AnalysisEngine:
             fres.matched_measures = len(matched)
             for m in sorted(matched):
                 fres.hits.extend(measure_hits[m][name])
+
+        # ---- 难度加权分（《音型集》口径）----
+        # 每特征权重 weight；若某小节内双手（两个及以上不同声部）同时
+        # 出现该技术，该小节该特征的加权贡献 ×2。
+        difficulty_score = 0.0
+        for feature in self.features:
+            w = float(getattr(feature, "weight", 1.0))
+            hit_measures = set()
+            two_hand_measures = set()
+            for m, fmap in measure_hits.items():
+                hits = fmap.get(feature.name)
+                if not hits:
+                    continue
+                hit_measures.add(m)
+                parts = {h.part_name for h in hits}
+                if len(parts) >= 2:   # 双手/两声部同时出现
+                    two_hand_measures.add(m)
+            # 单特征难度贡献 = 权重 × (单手命中小节数 + 双手命中小节数×2)
+            single_hand = hit_measures - two_hand_measures
+            score = w * (len(single_hand) + 2 * len(two_hand_measures))
+            result.difficulty_detail[feature.name] = {
+                "weight": w,
+                "hit_measures": len(hit_measures),
+                "two_hand_measures": len(two_hand_measures),
+                "score": round(score, 2),
+            }
+            difficulty_score += score
+        result.difficulty_score = round(difficulty_score, 2)
         return result
 
     # ------------------------------------------------------------------
@@ -148,7 +182,7 @@ class AnalysisEngine:
                 if self.chord_mode == "skip":
                     continue
                 if self.chord_mode == "top":
-                    seq.append(el.notes[-1])  # 和弦最高音
+                    seq.append(_chord_top_note(el))  # 和弦最高音
                 else:  # all
                     seq.extend(el.notes)
             else:
@@ -171,15 +205,20 @@ class AnalysisEngine:
             yield window, desc
 
 
+def _chord_top_note(el: chord.Chord) -> note.Note:
+    """取和弦中音高最高的音符（按 MIDI 编号）。"""
+    return max(el.notes, key=lambda n: n.pitch.midi)
+
+
 def _el_midi(el) -> int:
     """元素的中音区编号；和弦取最高音。"""
     if isinstance(el, chord.Chord):
-        return el.notes[-1].pitch.midi
+        return _chord_top_note(el).pitch.midi
     return el.pitch.midi
 
 
 def _el_name(el) -> str:
     """元素名称；和弦显示为 [最高音]。"""
     if isinstance(el, chord.Chord):
-        return f"[{el.notes[-1].pitch.nameWithOctave}]"
+        return f"[{_chord_top_note(el).pitch.nameWithOctave}]"
     return el.pitch.nameWithOctave
