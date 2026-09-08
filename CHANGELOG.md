@@ -2,6 +2,34 @@
 
 本仓库的版本更新记录。语义化版本：`主.次.补丁`。
 
+## v1.5.0 (2026-09-08)
+
+### 背景
+- 响应 CVAA 2026 外审意见：补充阈值敏感性实验、可复现数据与论文图源，
+  支撑论文 4.3 节「Sensitivity, discussion and limitations」与图 2 放大修订。
+
+### 新增功能
+- **阈值敏感性分析脚本** `sensitivity_analysis.py`
+  - 全语料（10 首考级练习曲）one-at-a-time 扫描三类阈值并逐配置重跑
+    `AnalysisEngine` + `_reassign`，输出 60 单元一致率与 Spearman ρ；
+  - `hand_split ∈ {12..20}`（默认 16）、`cross_high ∈ {58..79}`（默认 72）、
+    `cross_low ∈ {36..55}`（默认 48），共 28 组配置；
+  - 结果：high 65–79 → 92.9–93.2%（ρ=0.988，58 → 89.9%）；low 36–55 →
+    93.0–93.1%；hand_split 12–20 → 恒 88.4%（ρ=0.976）；
+  - 输出 `output_grades/reports/敏感性分析.md/.xlsx` 与
+    `cvaa_figs_en/fig_sensitivity_en.png`（英文三面板图）。
+- **论文图源更新**（`cvaa_figs/`、`cvaa_figs_en/`）
+  - 图 2 重制为 2×1 竖排放大版 `fig2_handsplit_overview_en.png`
+    （`paper_fig2_handsplit_overview_en.py`），单栏打印字号 ≥9.5pt；
+  - 图 1/3/4 收窄图高、删除图内长 caption（`paper_figs_en.py`）。
+- **可复现数据入库** `data/`
+  - `data/etude07/`：OMR 原始 MusicXML（page_001）+ Sibelius 真值左右手；
+  - `data/reports/{etude01..10}/report.json`：1–10 级全部逐曲分析结果。
+
+### 修复
+- `sensitivity_analysis.py` 内人工标注 key 映射：`stretched_grip` ↔ 旧
+  `wide_leap_sum`（避免特征改名后敏感性扫描恒为同值的假象）。
+
 ## v1.4.0 (2026-09-01)
 
 ### 新增功能

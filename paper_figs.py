@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """CVAA 论文图表生成脚本。
-输出到 D:\githubmusic\论文写作\cvaa_figs\：
+输出到仓库内 cvaa_figs/：
   fig1_pipeline.png       系统管线图（含语义修复模块）
   fig2_handsplit.png      etude7 M1：双手拆分诊断前后对比（谱例）
   fig3_ablation.png       伸张把位修复消融：4 曲命中对比
@@ -10,7 +10,9 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# 仓库根目录锚点：数据与输出均相对仓库解析（开源可复现）
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
 
 import matplotlib
 matplotlib.use("Agg")
@@ -23,7 +25,7 @@ from scoreflow.analysis.hand_split import split_score
 plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "SimSun"]
 plt.rcParams["axes.unicode_minus"] = False
 
-OUT = r"D:\githubmusic\论文写作\cvaa_figs"
+OUT = str(HERE / "cvaa_figs")
 os.makedirs(OUT, exist_ok=True)
 
 # ---------------------------------------------------------------- 图 1 管线
@@ -89,7 +91,7 @@ def fig1_pipeline():
 # ---------------------------------------------------------------- 图 2 双手拆分谱例
 def fig2_handsplit():
     """etude7 第 1 小节：OMR 合并声部 vs 双手拆分后的 RH/LH 轮廓。"""
-    score = converter.parse(r"D:\HOMR\output\etude07\pages\page_001.musicxml")
+    score = converter.parse(str(HERE / "data" / "etude07" / "page_001.musicxml"))
 
     # (a) 拆分前：从 part 0 按 chord_top 取出的"合并声部"轮廓
     part0 = score.parts[0]
@@ -209,7 +211,7 @@ def fig4_difficulty_trend():
     grades = list(range(1, 11))
     scores = []
     for i in grades:
-        p = rf"D:/HOMR/output_grades/etude{i:02d}/reports/report.json"
+        p = str(HERE / "data" / "reports" / f"etude{i:02d}" / "report.json")
         d = json.load(open(p, encoding="utf-8"))
         scores.append(d["scores"][0].get("difficulty_score", 0.0))
 
@@ -230,8 +232,7 @@ def fig4_difficulty_trend():
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     fig.tight_layout()
-    out = r"D:/githubmusic/论文写作/cvaa_figs/fig4_difficulty.png"
-    os.makedirs(os.path.dirname(out), exist_ok=True)
+    out = os.path.join(OUT, "fig4_difficulty.png")
     fig.savefig(out, dpi=200)
     print("fig4_difficulty.png OK")
 

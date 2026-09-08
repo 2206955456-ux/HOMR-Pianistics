@@ -11,8 +11,16 @@ output/
 *.png
 !docs/*.png
 
+# 论文可复现数据与图表（显式入库）
+!data/etude07/*.musicxml
+!cvaa_figs/*.png
+!cvaa_figs_en/*.png
+
 # 编辑器与系统
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# 本地审查/验证目录（不入库）
+_review_check/

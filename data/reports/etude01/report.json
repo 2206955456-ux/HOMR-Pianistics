@@ -1,0 +1,182 @@
+{
+  "generated_at": "2026-09-01 16:38:51",
+  "source_pdf": "D:\\HOMR\\input\\etude01.pdf",
+  "scores": [
+    {
+      "musicxml": "D:\\HOMR\\input\\etude01.pdf",
+      "pages": 1,
+      "difficulty_score": 7.0,
+      "difficulty_detail": {
+        "wide_leap_sum": {
+          "weight": 2.0,
+          "hit_measures": 0,
+          "two_hand_measures": 0,
+          "score": 0.0
+        },
+        "consecutive_sixteenths": {
+          "weight": 2.0,
+          "hit_measures": 0,
+          "two_hand_measures": 0,
+          "score": 0.0
+        },
+        "consecutive_eighths": {
+          "weight": 1.0,
+          "hit_measures": 1,
+          "two_hand_measures": 1,
+          "score": 2.0
+        },
+        "consecutive_chords": {
+          "weight": 2.0,
+          "hit_measures": 0,
+          "two_hand_measures": 0,
+          "score": 0.0
+        },
+        "consecutive_intervals": {
+          "weight": 1.0,
+          "hit_measures": 0,
+          "two_hand_measures": 0,
+          "score": 0.0
+        },
+        "contracted_grip": {
+          "weight": 1.0,
+          "hit_measures": 4,
+          "two_hand_measures": 1,
+          "score": 5.0
+        }
+      },
+      "features": {
+        "wide_leap_sum": {
+          "description": "相邻3音的2个音程之和超过阈值半音（默认12=八度）",
+          "params": {
+            "threshold": 12,
+            "monotonic": true,
+            "arpeggio_aware": false
+          },
+          "matched_measures": 0,
+          "total_measures": 10,
+          "ratio": 0.0,
+          "hits": []
+        },
+        "consecutive_sixteenths": {
+          "description": "连续5个十六分音符",
+          "params": {
+            "window_size": 5
+          },
+          "matched_measures": 0,
+          "total_measures": 10,
+          "ratio": 0.0,
+          "hits": []
+        },
+        "consecutive_eighths": {
+          "description": "连续3个八分音符",
+          "params": {
+            "window_size": 3
+          },
+          "matched_measures": 1,
+          "total_measures": 10,
+          "ratio": 0.1,
+          "hits": [
+            {
+              "measure": 2,
+              "part": "Piano#1",
+              "notes": "E4 -> D4 -> E4 (2+2=4半音)"
+            },
+            {
+              "measure": 2,
+              "part": "Piano#1",
+              "notes": "D4 -> E4 -> F#4 (2+2=4半音)"
+            },
+            {
+              "measure": 2,
+              "part": "Piano#1",
+              "notes": "E4 -> F#4 -> G4 (2+1=3半音)"
+            },
+            {
+              "measure": 2,
+              "part": "Piano#2",
+              "notes": "A3 -> F#3 -> A3 (3+3=6半音)"
+            },
+            {
+              "measure": 2,
+              "part": "Piano#2",
+              "notes": "F#3 -> A3 -> D4 (3+5=8半音)"
+            },
+            {
+              "measure": 2,
+              "part": "Piano#2",
+              "notes": "A3 -> D4 -> E4 (5+2=7半音)"
+            }
+          ]
+        },
+        "consecutive_chords": {
+          "description": "连续3个和弦（同一声部，3音及以上叠置）",
+          "params": {
+            "window_size": 3,
+            "min_notes": 3
+          },
+          "matched_measures": 0,
+          "total_measures": 10,
+          "ratio": 0.0,
+          "hits": []
+        },
+        "consecutive_intervals": {
+          "description": "连续3个音程（同一声部，2音叠置）",
+          "params": {
+            "window_size": 3,
+            "exact": true
+          },
+          "matched_measures": 0,
+          "total_measures": 10,
+          "ratio": 0.0,
+          "hits": []
+        },
+        "contracted_grip": {
+          "description": "相邻5音的4个音程之和小于阈值半音（默认6=减五度）",
+          "params": {
+            "threshold": 6
+          },
+          "matched_measures": 4,
+          "total_measures": 10,
+          "ratio": 0.4,
+          "hits": [
+            {
+              "measure": 1,
+              "part": "Piano#1",
+              "notes": "D4 -> D4 -> D4 -> E4 -> D4 (0+0+2+2=4半音)"
+            },
+            {
+              "measure": 3,
+              "part": "Piano#1",
+              "notes": "A4 -> A4 -> A4 -> A4 -> G4 (0+0+0+2=2半音)"
+            },
+            {
+              "measure": 3,
+              "part": "Piano#1",
+              "notes": "A4 -> A4 -> A4 -> G4 -> F#4 (0+0+2+1=3半音)"
+            },
+            {
+              "measure": 3,
+              "part": "Piano#2",
+              "notes": "F#4 -> F#4 -> F#4 -> F#4 -> E4 (0+0+0+2=2半音)"
+            },
+            {
+              "measure": 3,
+              "part": "Piano#2",
+              "notes": "F#4 -> F#4 -> F#4 -> E4 -> D4 (0+0+2+2=4半音)"
+            },
+            {
+              "measure": 6,
+              "part": "Piano#1",
+              "notes": "E4 -> E4 -> E4 -> F#4 -> E4 (0+0+2+2=4半音)"
+            },
+            {
+              "measure": 8,
+              "part": "Piano#1",
+              "notes": "A4 -> G4 -> F#4 -> E4 -> E4 (2+1+2+0=5半音)"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

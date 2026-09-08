@@ -1,0 +1,358 @@
+{
+  "generated_at": "2026-09-01 16:38:53",
+  "source_pdf": "D:\\HOMR\\input\\etude02.pdf",
+  "scores": [
+    {
+      "musicxml": "D:\\HOMR\\input\\etude02.pdf",
+      "pages": 1,
+      "difficulty_score": 47.0,
+      "difficulty_detail": {
+        "wide_leap_sum": {
+          "weight": 2.0,
+          "hit_measures": 1,
+          "two_hand_measures": 0,
+          "score": 2.0
+        },
+        "consecutive_sixteenths": {
+          "weight": 2.0,
+          "hit_measures": 20,
+          "two_hand_measures": 0,
+          "score": 40.0
+        },
+        "consecutive_eighths": {
+          "weight": 1.0,
+          "hit_measures": 0,
+          "two_hand_measures": 0,
+          "score": 0.0
+        },
+        "consecutive_chords": {
+          "weight": 2.0,
+          "hit_measures": 0,
+          "two_hand_measures": 0,
+          "score": 0.0
+        },
+        "consecutive_intervals": {
+          "weight": 1.0,
+          "hit_measures": 0,
+          "two_hand_measures": 0,
+          "score": 0.0
+        },
+        "contracted_grip": {
+          "weight": 1.0,
+          "hit_measures": 5,
+          "two_hand_measures": 0,
+          "score": 5.0
+        }
+      },
+      "features": {
+        "wide_leap_sum": {
+          "description": "相邻3音的2个音程之和超过阈值半音（默认12=八度）",
+          "params": {
+            "threshold": 12,
+            "monotonic": true,
+            "arpeggio_aware": false
+          },
+          "matched_measures": 1,
+          "total_measures": 24,
+          "ratio": 0.0417,
+          "hits": [
+            {
+              "measure": 1,
+              "part": "Piano#1",
+              "notes": "C6 -> B4 -> A4 (13+2=15半音)"
+            }
+          ]
+        },
+        "consecutive_sixteenths": {
+          "description": "连续5个十六分音符",
+          "params": {
+            "window_size": 5
+          },
+          "matched_measures": 20,
+          "total_measures": 24,
+          "ratio": 0.8333,
+          "hits": [
+            {
+              "measure": 1,
+              "part": "Piano#1",
+              "notes": "C6 -> B4 -> A4 -> B4 -> C5 (13+2+2+1=18半音)"
+            },
+            {
+              "measure": 1,
+              "part": "Piano#1",
+              "notes": "B4 -> A4 -> B4 -> C5 -> D5 (2+2+1+2=7半音)"
+            },
+            {
+              "measure": 2,
+              "part": "Piano#1",
+              "notes": "E5 -> D#5 -> E5 -> D5 -> C5 (1+1+2+2=6半音)"
+            },
+            {
+              "measure": 2,
+              "part": "Piano#1",
+              "notes": "D#5 -> E5 -> D5 -> C5 -> B4 (1+2+2+1=6半音)"
+            },
+            {
+              "measure": 3,
+              "part": "Piano#1",
+              "notes": "C5 -> B4 -> A4 -> B4 -> C5 (1+2+2+1=6半音)"
+            },
+            {
+              "measure": 3,
+              "part": "Piano#1",
+              "notes": "B4 -> A4 -> B4 -> C5 -> D5 (2+2+1+2=7半音)"
+            },
+            {
+              "measure": 4,
+              "part": "Piano#1",
+              "notes": "E5 -> D#5 -> E5 -> D5 -> C5 (1+1+2+2=6半音)"
+            },
+            {
+              "measure": 4,
+              "part": "Piano#1",
+              "notes": "D#5 -> E5 -> D5 -> C5 -> B4 (1+2+2+1=6半音)"
+            },
+            {
+              "measure": 5,
+              "part": "Piano#1",
+              "notes": "C5 -> B4 -> A4 -> B4 -> C5 (1+2+2+1=6半音)"
+            },
+            {
+              "measure": 5,
+              "part": "Piano#1",
+              "notes": "B4 -> A4 -> B4 -> C5 -> D5 (2+2+1+2=7半音)"
+            },
+            {
+              "measure": 6,
+              "part": "Piano#1",
+              "notes": "E5 -> D5 -> C5 -> D5 -> E5 (2+2+2+2=8半音)"
+            },
+            {
+              "measure": 6,
+              "part": "Piano#1",
+              "notes": "D5 -> C5 -> D5 -> E5 -> F5 (2+2+2+1=7半音)"
+            },
+            {
+              "measure": 7,
+              "part": "Piano#1",
+              "notes": "G5 -> F#5 -> G5 -> F5 -> E5 (1+1+2+1=5半音)"
+            },
+            {
+              "measure": 7,
+              "part": "Piano#1",
+              "notes": "F#5 -> G5 -> F5 -> E5 -> D5 (1+2+1+2=6半音)"
+            },
+            {
+              "measure": 9,
+              "part": "Piano#2",
+              "notes": "E4 -> D#4 -> E4 -> D4 -> C4 (1+1+2+2=6半音)"
+            },
+            {
+              "measure": 9,
+              "part": "Piano#2",
+              "notes": "D#4 -> E4 -> D4 -> C4 -> B3 (1+2+2+1=6半音)"
+            },
+            {
+              "measure": 10,
+              "part": "Piano#2",
+              "notes": "A3 -> G#3 -> A3 -> B3 -> C4 (1+1+2+1=5半音)"
+            },
+            {
+              "measure": 10,
+              "part": "Piano#2",
+              "notes": "G#3 -> A3 -> B3 -> C4 -> D4 (1+2+1+2=6半音)"
+            },
+            {
+              "measure": 11,
+              "part": "Piano#2",
+              "notes": "E4 -> D#4 -> E4 -> D4 -> C4 (1+1+2+2=6半音)"
+            },
+            {
+              "measure": 11,
+              "part": "Piano#2",
+              "notes": "D#4 -> E4 -> D4 -> C4 -> B3 (1+2+2+1=6半音)"
+            },
+            {
+              "measure": 12,
+              "part": "Piano#2",
+              "notes": "A3 -> G#3 -> A3 -> B3 -> C4 (1+1+2+1=5半音)"
+            },
+            {
+              "measure": 12,
+              "part": "Piano#2",
+              "notes": "G#3 -> A3 -> B3 -> C4 -> D4 (1+2+1+2=6半音)"
+            },
+            {
+              "measure": 13,
+              "part": "Piano#2",
+              "notes": "E4 -> D#4 -> E4 -> D#4 -> E4 (1+1+1+1=4半音)"
+            },
+            {
+              "measure": 13,
+              "part": "Piano#2",
+              "notes": "D#4 -> E4 -> D#4 -> E4 -> D#4 (1+1+1+1=4半音)"
+            },
+            {
+              "measure": 14,
+              "part": "Piano#2",
+              "notes": "E4 -> D#4 -> E4 -> D#4 -> E4 (1+1+1+1=4半音)"
+            },
+            {
+              "measure": 14,
+              "part": "Piano#2",
+              "notes": "D#4 -> E4 -> D#4 -> E4 -> D#4 (1+1+1+1=4半音)"
+            },
+            {
+              "measure": 17,
+              "part": "Piano#1",
+              "notes": "C5 -> B4 -> A4 -> B4 -> C5 (1+2+2+1=6半音)"
+            },
+            {
+              "measure": 17,
+              "part": "Piano#1",
+              "notes": "B4 -> A4 -> B4 -> C5 -> D5 (2+2+1+2=7半音)"
+            },
+            {
+              "measure": 18,
+              "part": "Piano#1",
+              "notes": "E5 -> D#5 -> E5 -> D5 -> C5 (1+1+2+2=6半音)"
+            },
+            {
+              "measure": 18,
+              "part": "Piano#1",
+              "notes": "D#5 -> E5 -> D5 -> C5 -> B4 (1+2+2+1=6半音)"
+            },
+            {
+              "measure": 19,
+              "part": "Piano#1",
+              "notes": "C5 -> B4 -> A4 -> B4 -> C5 (1+2+2+1=6半音)"
+            },
+            {
+              "measure": 19,
+              "part": "Piano#1",
+              "notes": "B4 -> A4 -> B4 -> C5 -> D5 (2+2+1+2=7半音)"
+            },
+            {
+              "measure": 20,
+              "part": "Piano#1",
+              "notes": "E5 -> D#5 -> E5 -> D5 -> C5 (1+1+2+2=6半音)"
+            },
+            {
+              "measure": 20,
+              "part": "Piano#1",
+              "notes": "D#5 -> E5 -> D5 -> C5 -> B4 (1+2+2+1=6半音)"
+            },
+            {
+              "measure": 21,
+              "part": "Piano#1",
+              "notes": "C5 -> B4 -> A4 -> C5 -> D5 (1+2+3+2=8半音)"
+            },
+            {
+              "measure": 21,
+              "part": "Piano#1",
+              "notes": "B4 -> A4 -> C5 -> D5 -> E5 (2+3+2+2=9半音)"
+            },
+            {
+              "measure": 22,
+              "part": "Piano#1",
+              "notes": "F5 -> E5 -> D5 -> B4 -> C5 (1+2+3+1=7半音)"
+            },
+            {
+              "measure": 22,
+              "part": "Piano#1",
+              "notes": "E5 -> D5 -> B4 -> C5 -> D5 (2+3+1+2=8半音)"
+            },
+            {
+              "measure": 23,
+              "part": "Piano#1",
+              "notes": "C5 -> E5 -> D#5 -> E5 -> B4 (4+1+1+5=11半音)"
+            },
+            {
+              "measure": 23,
+              "part": "Piano#1",
+              "notes": "E5 -> D#5 -> E5 -> B4 -> E5 (1+1+5+5=12半音)"
+            }
+          ]
+        },
+        "consecutive_eighths": {
+          "description": "连续3个八分音符",
+          "params": {
+            "window_size": 3
+          },
+          "matched_measures": 0,
+          "total_measures": 24,
+          "ratio": 0.0,
+          "hits": []
+        },
+        "consecutive_chords": {
+          "description": "连续3个和弦（同一声部，3音及以上叠置）",
+          "params": {
+            "window_size": 3,
+            "min_notes": 3
+          },
+          "matched_measures": 0,
+          "total_measures": 24,
+          "ratio": 0.0,
+          "hits": []
+        },
+        "consecutive_intervals": {
+          "description": "连续3个音程（同一声部，2音叠置）",
+          "params": {
+            "window_size": 3,
+            "exact": true
+          },
+          "matched_measures": 0,
+          "total_measures": 24,
+          "ratio": 0.0,
+          "hits": []
+        },
+        "contracted_grip": {
+          "description": "相邻5音的4个音程之和小于阈值半音（默认6=减五度）",
+          "params": {
+            "threshold": 6
+          },
+          "matched_measures": 5,
+          "total_measures": 24,
+          "ratio": 0.2083,
+          "hits": [
+            {
+              "measure": 7,
+              "part": "Piano#1",
+              "notes": "G5 -> F#5 -> G5 -> F5 -> E5 (1+1+2+1=5半音)"
+            },
+            {
+              "measure": 10,
+              "part": "Piano#2",
+              "notes": "A3 -> G#3 -> A3 -> B3 -> C4 (1+1+2+1=5半音)"
+            },
+            {
+              "measure": 12,
+              "part": "Piano#2",
+              "notes": "A3 -> G#3 -> A3 -> B3 -> C4 (1+1+2+1=5半音)"
+            },
+            {
+              "measure": 13,
+              "part": "Piano#2",
+              "notes": "E4 -> D#4 -> E4 -> D#4 -> E4 (1+1+1+1=4半音)"
+            },
+            {
+              "measure": 13,
+              "part": "Piano#2",
+              "notes": "D#4 -> E4 -> D#4 -> E4 -> D#4 (1+1+1+1=4半音)"
+            },
+            {
+              "measure": 14,
+              "part": "Piano#2",
+              "notes": "E4 -> D#4 -> E4 -> D#4 -> E4 (1+1+1+1=4半音)"
+            },
+            {
+              "measure": 14,
+              "part": "Piano#2",
+              "notes": "D#4 -> E4 -> D#4 -> E4 -> D#4 (1+1+1+1=4半音)"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
