@@ -3,6 +3,28 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+## English
+
+**HOMR-Pianistics** turns scanned piano scores into digital scores and reports which passages ask for more than a young player's hand can span, so a teacher can judge the difficulty of teaching material before assigning it and avoid passages that put a small hand under strain. It runs one four-stage pipeline:
+
+```
+score PDF → page images → HOMR (optical music recognition) → MusicXML
+          → sliding-window technique analysis (music21) → Markdown / JSON / Excel report
+```
+
+```bash
+python run.py path/to/score.pdf   # full pipeline → output/reports/report.xlsx
+python run.py --list-features     # the six built-in technique features
+```
+
+For each piece the report gives the share of measures containing each technique and a weighted difficulty score. The hand-span threshold is a parameter (an octave by default), and a passage is flagged when three successive notes move in one direction and their two intervals sum beyond that span.
+
+This is a research prototype built on HOMR and music21; results on poor scans need manual checking. The feature set is a plugin directory — a new technique is one small Python class, with no engine changes.
+
+---
+
+## 中文文档
+
 **PDF 乐谱 → MusicXML（HOMR 光学识别）→ 音群特征分析（music21）→ Markdown/JSON/Excel 报告**
 
 一条命令完成全流程。分析特征完全可插拔：想统计什么样的"音群"，写一个小类即可，
