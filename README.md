@@ -1,4 +1,4 @@
-# scoreflow —— 乐谱识别与音群特征分析工作流
+# HOMR-Pianistics (scoreflow) —— 乐谱识别与音群特征分析工作流
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
